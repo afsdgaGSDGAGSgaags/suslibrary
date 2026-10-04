@@ -2385,8 +2385,8 @@ function Library:CreateWindow(...)
 
 		local UnderlineTween;
 
-		local function SetTabUnderlineColor(ColorKey)
-			setUnderlineGlow(ColorKey == 'AccentColor')
+		local function SetTabUnderlineColor(ColorKey, ShowGlow)
+			setUnderlineGlow(ShowGlow == true)
 			if UnderlineTween then
 				UnderlineTween:Cancel();
 				UnderlineTween = nil;
@@ -2408,13 +2408,13 @@ end;
 
 		TabButton.MouseEnter:Connect(function()
 			if Window.ActiveTab == Tab then return end;
-			SetTabUnderlineColor('AccentColor');
+			SetTabUnderlineColor('AccentColor', false);
 			SetTabHighlightTransparency(0.85);
 		end);
 
 		TabButton.MouseLeave:Connect(function()
 			if Window.ActiveTab == Tab then return end;
-			SetTabUnderlineColor('OutlineColor');
+			SetTabUnderlineColor('OutlineColor', false);
 			SetTabHighlightTransparency(1);
 		end);
 
@@ -2518,7 +2518,7 @@ end;
 
 			Blocker.BackgroundTransparency = 1;
 
-			SetTabUnderlineColor('AccentColor');
+			SetTabUnderlineColor('AccentColor', true);
 			SetTabHighlightTransparency(0.9);
 			Library.RegistryMap[TabButtonLabel].Properties.TextColor3 = function()
 				if tween then
@@ -2538,7 +2538,7 @@ end;
 		function Tab:HideTab()
 			Blocker.BackgroundTransparency = 1;
 
-			SetTabUnderlineColor('OutlineColor');
+			SetTabUnderlineColor('OutlineColor', false);
 			SetTabHighlightTransparency(1);
 
 			services.TweenService:Create(TabButtonLabel, TweenInfo.new(0.18), {
