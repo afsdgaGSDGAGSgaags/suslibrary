@@ -1892,10 +1892,12 @@ function Library:CreateWindow(...)
 		Active = false;
 		BackgroundTransparency = 1;
 		BorderSizePixel = 0;
-		Image = 'rbxthumb://type=Asset&id=129868188377055&w=150&h=150';
+		Image = 'rbxassetid://129868188377055';
+		ImageColor3 = Color3.new(1, 1, 1);
+		ImageTransparency = 0;
 		ScaleType = Enum.ScaleType.Fit;
-		Size = UDim2.fromOffset(16, 16);
-		ZIndex = 5;
+		Size = UDim2.fromOffset(22, 22);
+		ZIndex = 10;
 		Parent = WindowTitleContent;
 	})
 	Library.WindowTitleFontName = "GothamBold"
@@ -1970,7 +1972,7 @@ function Library:CreateWindow(...)
 		local gap = accentWidth > 0 and 4 or 0
 		local maximumContentWidth = math.max(1, availableWidth - 24)
 		local totalTextWidth = baseWidth + accentWidth
-		local logoWidth = 16
+		local logoWidth = 22
 		local logoGap = totalTextWidth > 0 and 5 or 0
 		if totalTextWidth + gap + logoGap + logoWidth > maximumContentWidth and totalTextWidth > 0 then
 			local textWidthBudget = math.max(2, maximumContentWidth - gap - logoGap - logoWidth)
@@ -1984,7 +1986,7 @@ function Library:CreateWindow(...)
 		WindowLabel.Size = UDim2.fromOffset(baseWidth, 24)
 		WindowAccentLabel.Position = UDim2.fromOffset(baseWidth + gap, 0)
 		WindowAccentLabel.Size = UDim2.fromOffset(accentWidth, 24)
-		WindowTitleLogo.Position = UDim2.fromOffset(textWidth + logoGap, 4)
+		WindowTitleLogo.Position = UDim2.fromOffset(textWidth + logoGap, 1)
 		WindowTitleLogo.Size = UDim2.fromOffset(logoWidth, logoWidth)
 		WindowTitleContent.Size = UDim2.fromOffset(contentWidth, 24)
 		WindowTitleContent.Position = UDim2.new(0.5, 0, 0, 0)
