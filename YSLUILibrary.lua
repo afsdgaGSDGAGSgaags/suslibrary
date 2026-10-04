@@ -8234,7 +8234,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 
-local IMAGE = "rbxthumb://type=Asset&id=12454398434&w=420&h=420"
+local IMAGE = "rbxthumb://type=Asset&id=134597908413024&w=420&h=420"
 
 return function(library)
 	local image = library:Create("ImageLabel", {
