@@ -1896,9 +1896,10 @@ function Library:CreateWindow(...)
 		ImageColor3 = Color3.new(1, 1, 1);
 		ImageTransparency = 0;
 		ScaleType = Enum.ScaleType.Fit;
-		Size = UDim2.fromOffset(20, 20);
+		Position = UDim2.fromOffset(8, 2);
+		Size = UDim2.fromOffset(28, 28);
 		ZIndex = 5;
-		Parent = WindowTitleContent;
+		Parent = Inner;
 	})
 	Library.WindowTitleFontName = "GothamBold"
 	Library.UIFontName = "Gotham"
@@ -1978,28 +1979,11 @@ function Library:CreateWindow(...)
 			accentWidth = math.max(1, textWidthBudget - baseWidth)
 		end
 
-		local textWidth = baseWidth + gap + accentWidth
-		local logoWidth = 20
-		local logoGap = textWidth > 0 and 5 or 0
-		if textWidth + logoGap + logoWidth > maximumContentWidth then
-			local textWidthBudget = math.max(1, maximumContentWidth - logoGap - logoWidth)
-			if baseWidth > 0 and accentWidth > 0 then
-				baseWidth = math.max(1, math.floor(textWidthBudget * baseWidth / textWidth))
-				accentWidth = math.max(1, textWidthBudget - baseWidth - gap)
-			elseif baseWidth > 0 then
-				baseWidth = textWidthBudget
-			else
-				accentWidth = textWidthBudget
-			end
-			textWidth = baseWidth + gap + accentWidth
-		end
-		local contentWidth = textWidth + logoGap + logoWidth
+		local contentWidth = baseWidth + gap + accentWidth
 		WindowLabel.Position = UDim2.fromOffset(0, 0)
 		WindowLabel.Size = UDim2.fromOffset(baseWidth, 24)
 		WindowAccentLabel.Position = UDim2.fromOffset(baseWidth + gap, 0)
 		WindowAccentLabel.Size = UDim2.fromOffset(accentWidth, 24)
-		WindowTitleLogo.Position = UDim2.fromOffset(textWidth + logoGap, 2)
-		WindowTitleLogo.Size = UDim2.fromOffset(logoWidth, logoWidth)
 		WindowTitleContent.Size = UDim2.fromOffset(contentWidth, 24)
 		WindowTitleContent.Position = UDim2.new(0.5, 0, 0, 0)
 		WindowTitlePlate.Size = UDim2.fromOffset(math.min(availableWidth, contentWidth + 24), 24)
