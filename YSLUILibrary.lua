@@ -148,10 +148,13 @@ local Library = {
 };
 
 function Library:ApplyThemeCorner(corner)
-	if not self.ThemeCornerDefaults[corner] then
+	if not self.WidgetCornersBoxy then
+		return
+	end
+	if self.ThemeCornerDefaults[corner] == nil then
 		self.ThemeCornerDefaults[corner] = corner.CornerRadius
 	end
-	corner.CornerRadius = self.WidgetCornersBoxy and UDim.new(0, 0) or self.ThemeCornerDefaults[corner]
+	corner.CornerRadius = UDim.new(0, 0)
 end
 
 function Library:SetWidgetCornersBoxy(enabled)
@@ -160,17 +163,24 @@ function Library:SetWidgetCornersBoxy(enabled)
 		self.WidgetCornersConnection:Disconnect()
 		self.WidgetCornersConnection = nil
 	end
-	for _, descendant in ipairs(self.ScreenGui:GetDescendants()) do
-		if descendant:IsA("UICorner") then
-			self:ApplyThemeCorner(descendant)
-		end
-	end
 	if self.WidgetCornersBoxy then
+		for _, descendant in ipairs(self.ScreenGui:GetDescendants()) do
+			if descendant:IsA("UICorner") then
+				self:ApplyThemeCorner(descendant)
+			end
+		end
 		self.WidgetCornersConnection = self.ScreenGui.DescendantAdded:Connect(function(descendant)
 			if descendant:IsA("UICorner") then
 				self:ApplyThemeCorner(descendant)
 			end
 		end)
+	else
+		for corner, originalRadius in pairs(self.ThemeCornerDefaults) do
+			if corner.Parent then
+				corner.CornerRadius = originalRadius
+			end
+			self.ThemeCornerDefaults[corner] = nil
+		end
 	end
 end
 
@@ -1899,7 +1909,9 @@ function Library:CreateWindow(...)
 		lexend.bold = fontFace
 		for _, descendant in ipairs(ScreenGui:GetDescendants()) do
 			if descendant:IsA("TextLabel") or descendant:IsA("TextButton") or descendant:IsA("TextBox") then
-				descendant.FontFace = fontFace
+				descendant.FontFace = descendant:GetAttribute("YSLBoldKeybind") == true
+					and Font.fromEnum(Enum.Font.GothamBold)
+					or fontFace
 			end
 		end
 		if WindowSearchBox then
@@ -6955,6 +6967,8 @@ end
 			Parent = PickInner;
 			Name = "DisplayLabelKeybind";
 		});
+		DisplayLabel:SetAttribute("YSLBoldKeybind", true)
+		DisplayLabel.FontFace = Font.fromEnum(Enum.Font.GothamBold)
 
 		local ModeSelectOuter = Library:Create('Frame', {
 			BorderColor3 = Color3.new(0, 0, 0);
@@ -7036,6 +7050,8 @@ end
 			ZIndex = 112,
 			Parent = keyBadge,
 		}, true, lexend.bold)
+		keyBadgeLabel:SetAttribute("YSLBoldKeybind", true)
+		keyBadgeLabel.FontFace = Font.fromEnum(Enum.Font.GothamBold)
 		local actionLabel = Library:CreateLabel({
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(50, 0),
@@ -8214,10 +8230,11 @@ return function(library)
 end
 	end,
 	["@src/ui/side_image"] = function()
+local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 
-local IMAGE = "rbxassetid://12454398434"
+local IMAGE = "rbxthumb://type=Asset&id=12454398434&w=420&h=420"
 
 return function(library)
 	local image = library:Create("ImageLabel", {
@@ -8228,7 +8245,7 @@ return function(library)
 		ScaleType = Enum.ScaleType.Fit,
 		Size = UDim2.fromOffset(200, 230),
 		Visible = false,
-		ZIndex = 450,
+		ZIndex = 1000,
 		Parent = library.ScreenGui,
 	})
 	library:AddUIScale(image)
@@ -8255,11 +8272,13 @@ return function(library)
 		local windowPosition = window.AbsolutePosition - topLeftInset
 		local imageSize = image.AbsoluteSize
 		local uiScale = math.max(library:GetUIScale(), 0.01)
-		local x = math.clamp(
-			windowPosition.X - imageSize.X - 10,
-			8,
-			math.max(8, viewportSize.X - imageSize.X - 8)
-		)
+		local preview = library.ESPPreviewFrame
+		local previewOnRight = not preview
+			or preview.AbsolutePosition.X >= window.AbsolutePosition.X + window.AbsoluteSize.X / 2
+		local preferredX = previewOnRight
+			and windowPosition.X - imageSize.X - 10
+			or windowPosition.X + window.AbsoluteSize.X + 10
+		local x = math.clamp(preferredX, 8, math.max(8, viewportSize.X - imageSize.X - 8))
 		local y = math.clamp(
 			windowPosition.Y + 58,
 			8,
@@ -8273,6 +8292,22 @@ return function(library)
 	library:GiveSignal(RunService.RenderStepped:Connect(updatePlacement))
 	library:GiveSignal(library.OnToggledChanged.Event:Connect(updatePlacement))
 	library:GiveSignal(library.ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
+	task.spawn(function()
+		local success, err = pcall(function()
+			ContentProvider:PreloadAsync({ image }, function(assetId, status)
+				if status ~= Enum.AssetFetchStatus.Success then
+					warn(string.format(
+						"[YSL Method] Side image asset %s failed to load (%s).",
+						tostring(assetId),
+						tostring(status)
+					))
+				end
+			end)
+		end)
+		if not success then
+			warn("[YSL Method] Could not load the side image asset: " .. tostring(err))
+		end
+	end)
 
 	return {
 		Frame = image,
@@ -10015,6 +10050,10 @@ settingsModule.Setup(settingsTab, {
 	SideImage = sideImage,
 	SetStatus = setStatus,
 })
+local sideImageToggle = aztup_toggles.YSL_ShowSideImage
+if sideImageToggle then
+	sideImage:SetEnabled(sideImageToggle.Value)
+end
 
 Library:UpdateColorsUsingRegistry()
 loaded_signal:fire()
