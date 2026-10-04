@@ -143,13 +143,35 @@ local Library = {
 	ScreenGui = ScreenGui;
 	ThemeStyle = "Default";
 	ThemeCornerDefaults = setmetatable({}, { __mode = "k" });
+	WidgetCornersBoxy = false;
+	WidgetCornersConnection = nil;
 };
 
 function Library:ApplyThemeCorner(corner)
 	if not self.ThemeCornerDefaults[corner] then
 		self.ThemeCornerDefaults[corner] = corner.CornerRadius
 	end
-	corner.CornerRadius = self.ThemeCornerDefaults[corner]
+	corner.CornerRadius = self.WidgetCornersBoxy and UDim.new(0, 0) or self.ThemeCornerDefaults[corner]
+end
+
+function Library:SetWidgetCornersBoxy(enabled)
+	self.WidgetCornersBoxy = enabled == true
+	if self.WidgetCornersConnection then
+		self.WidgetCornersConnection:Disconnect()
+		self.WidgetCornersConnection = nil
+	end
+	for _, descendant in ipairs(self.ScreenGui:GetDescendants()) do
+		if descendant:IsA("UICorner") then
+			self:ApplyThemeCorner(descendant)
+		end
+	end
+	if self.WidgetCornersBoxy then
+		self.WidgetCornersConnection = self.ScreenGui.DescendantAdded:Connect(function(descendant)
+			if descendant:IsA("UICorner") then
+				self:ApplyThemeCorner(descendant)
+			end
+		end)
+	end
 end
 
 function Library:SetThemeStyle()
@@ -766,6 +788,7 @@ end
 
 function Library:AddAccentGlow(target, enabled, animated, strokeTransparency, strokeThickness)
 	local gradient = Instance.new('UIGradient')
+	gradient.Enabled = enabled ~= false
 	gradient.Rotation = 0
 	gradient.Parent = target
 
@@ -815,6 +838,7 @@ function Library:AddAccentGlow(target, enabled, animated, strokeTransparency, st
 
 	return function(isEnabled)
 		if not cleaned then
+			gradient.Enabled = isEnabled == true
 			stroke.Enabled = isEnabled
 		end
 	end
@@ -8834,6 +8858,14 @@ local function setupSettings(tab, context)
 		Callback = function(enabled)
 			windowCornerRadiusSlider:SetDisabled(not enabled)
 			context.Library:SetWindowCornerRadius(enabled and windowCornerRadius or nil)
+		end,
+	})
+	interface:AddToggle("Wiggins_BoxyWidgets", {
+		Text = "Boxy widgets",
+		Tooltip = "Remove rounded corners from every UI widget, including widgets created later.",
+		Default = false,
+		Callback = function(enabled)
+			context.Library:SetWidgetCornersBoxy(enabled)
 		end,
 	})
 
