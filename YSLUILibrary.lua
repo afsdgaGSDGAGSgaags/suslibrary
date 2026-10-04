@@ -8111,7 +8111,7 @@ return function(library)
 		end
 		x = math.clamp(x, 8, math.max(8, viewportSize.X - previewSize.X - 8))
 		local y = math.clamp(
-			windowPosition.Y,
+			windowPosition.Y + 48,
 			8,
 			math.max(8, viewportSize.Y - previewSize.Y - 8)
 		)
@@ -8189,145 +8189,6 @@ return function(library)
 	}
 end
 	end,
-	["@src/ui/side_character"] = function()
-local GuiService = game:GetService("GuiService")
-local RunService = game:GetService("RunService")
-
-return function(library)
-	local screenGui = library.ScreenGui
-	local character = library:Create("Frame", {
-		Name = "YSLShowcaseCharacter",
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(172, 294),
-		Visible = false,
-		ZIndex = 450,
-		Parent = screenGui,
-	})
-	library:AddUIScale(character)
-	library.SideCharacterFrame = character
-
-	local function shape(name, color, position, size, zIndex, radius)
-		local frame = library:Create("Frame", {
-			Name = name,
-			BackgroundColor3 = color,
-			BorderSizePixel = 0,
-			Position = position,
-			Size = size,
-			ZIndex = zIndex,
-			Parent = character,
-		})
-		if radius then
-			library:Create("UICorner", {
-				CornerRadius = UDim.new(0, radius),
-				Parent = frame,
-			})
-		end
-		return frame
-	end
-
-	local hair = Color3.fromRGB(35, 29, 47)
-	local skin = Color3.fromRGB(255, 218, 205)
-	local eye = Color3.fromRGB(120, 79, 190)
-	local coat = Color3.fromRGB(73, 49, 89)
-
-	local glow = shape("PortraitGlow", library.AccentColor, UDim2.fromOffset(18, 22), UDim2.fromOffset(136, 218), 450, 68)
-	glow.BackgroundTransparency = 0.78
-	library:AddToRegistry(glow, { BackgroundColor3 = "AccentColor" }, true)
-	local hairBack = shape("HairBack", hair, UDim2.fromOffset(35, 36), UDim2.fromOffset(104, 132), 451, 48)
-	local neck = shape("Neck", skin, UDim2.fromOffset(73, 142), UDim2.fromOffset(30, 39), 452, 12)
-	local torso = shape("Coat", coat, UDim2.fromOffset(30, 178), UDim2.fromOffset(112, 101), 451, 48)
-	local coatHighlight = shape("CoatHighlight", library.AccentColor, UDim2.fromOffset(83, 188), UDim2.fromOffset(8, 75), 452, 4)
-	coatHighlight.BackgroundTransparency = 0.12
-	library:AddToRegistry(coatHighlight, { BackgroundColor3 = "AccentColor" }, true)
-	local collarLeft = shape("CollarLeft", Color3.fromRGB(245, 236, 248), UDim2.fromOffset(61, 178), UDim2.fromOffset(23, 39), 453, 7)
-	collarLeft.Rotation = -18
-	local collarRight = shape("CollarRight", Color3.fromRGB(245, 236, 248), UDim2.fromOffset(89, 178), UDim2.fromOffset(23, 39), 453, 7)
-	collarRight.Rotation = 18
-	local face = shape("Face", skin, UDim2.fromOffset(48, 45), UDim2.fromOffset(79, 105), 454, 36)
-	local earLeft = shape("EarLeft", skin, UDim2.fromOffset(41, 88), UDim2.fromOffset(17, 25), 453, 9)
-	local earRight = shape("EarRight", skin, UDim2.fromOffset(117, 88), UDim2.fromOffset(17, 25), 453, 9)
-
-	for _, eyeX in ipairs({ 65, 99 }) do
-		local eyeWhite = shape("EyeWhite", Color3.fromRGB(255, 250, 250), UDim2.fromOffset(eyeX, 89), UDim2.fromOffset(17, 22), 455, 9)
-		local iris = shape("Iris", eye, UDim2.fromOffset(eyeX + 4, 93), UDim2.fromOffset(10, 15), 456, 6)
-		shape("EyeShine", Color3.new(1, 1, 1), UDim2.fromOffset(eyeX + 6, 95), UDim2.fromOffset(4, 5), 457, 2)
-		eyeWhite.BackgroundTransparency = 0
-		iris.BackgroundTransparency = 0
-	end
-
-	local blushLeft = shape("BlushLeft", Color3.fromRGB(244, 142, 159), UDim2.fromOffset(56, 117), UDim2.fromOffset(16, 6), 455, 4)
-	local blushRight = shape("BlushRight", Color3.fromRGB(244, 142, 159), UDim2.fromOffset(103, 117), UDim2.fromOffset(16, 6), 455, 4)
-	blushLeft.BackgroundTransparency = 0.45
-	blushRight.BackgroundTransparency = 0.45
-	local mouth = shape("Smile", Color3.fromRGB(177, 92, 111), UDim2.fromOffset(82, 130), UDim2.fromOffset(12, 3), 455, 2)
-
-	for index, spec in ipairs({
-		{ X = 35, Y = 61, W = 44, H = 25, R = -24 },
-		{ X = 78, Y = 31, W = 56, H = 29, R = 12 },
-		{ X = 104, Y = 48, W = 39, H = 25, R = 35 },
-		{ X = 36, Y = 82, W = 34, H = 22, R = -38 },
-	}) do
-		local bang = shape(
-			"HairFringe" .. index,
-			hair,
-			UDim2.fromOffset(spec.X, spec.Y),
-			UDim2.fromOffset(spec.W, spec.H),
-			458,
-			12
-		)
-		bang.Rotation = spec.R
-	end
-
-	local accentGem = shape("HairGem", library.AccentColor, UDim2.fromOffset(117, 48), UDim2.fromOffset(12, 12), 459, 6)
-	accentGem.Rotation = 45
-	library:AddToRegistry(accentGem, { BackgroundColor3 = "AccentColor" }, true)
-	local caption = library:CreateLabel({
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(8, 266),
-		Size = UDim2.new(1, -16, 0, 19),
-		Text = "YSL  /  SHOWCASE",
-		TextColor3 = library.FontColor,
-		TextSize = 10,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 1,
-		ZIndex = 460,
-		Parent = character,
-	})
-	library:AddToRegistry(caption, { TextColor3 = "FontColor" }, true)
-
-	local function updatePlacement()
-		local window = library.WindowHolder
-		local camera = workspace.CurrentCamera
-		if not window or not window.Parent or not camera then
-			return
-		end
-		local inset = Vector2.zero
-		if not screenGui.IgnoreGuiInset then
-			inset = GuiService:GetGuiInset()
-		end
-		local viewport = camera.ViewportSize - inset
-		local scale = math.max(library:GetUIScale(), 0.01)
-		local windowLeft = window.AbsolutePosition.X - inset.X
-		local windowTop = window.AbsolutePosition.Y - inset.Y
-		local width = character.AbsoluteSize.X / scale
-		local height = character.AbsoluteSize.Y / scale
-		local x = math.clamp(windowLeft / scale - width - 14, 4, math.max(4, viewport.X / scale - width - 4))
-		local y = math.clamp(windowTop / scale + (window.AbsoluteSize.Y / scale - height) / 2, 4, math.max(4, viewport.Y / scale - height - 4))
-		character.Position = UDim2.fromOffset(x, y)
-	end
-
-	library:GiveSignal(RunService.RenderStepped:Connect(function()
-		character.Visible = library.Toggled == true
-		if character.Visible then
-			updatePlacement()
-		end
-	end))
-	library:GiveSignal(screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
-
-	return character
-end
-	end,
 	["@src/ui/tabs/Settings"] = function()
 local themes = {
 	Nord = {
@@ -8350,6 +8211,13 @@ local themes = {
 		AccentColor = Color3.fromHex("3db488"),
 		BackgroundColor = Color3.fromHex("1c1c1c"),
 		OutlineColor = Color3.fromHex("373737"),
+	},
+	Transparent = {
+		FontColor = Color3.fromHex("f1f5f9"),
+		MainColor = Color3.fromHex("24313a"),
+		AccentColor = Color3.fromHex("3db488"),
+		BackgroundColor = Color3.fromHex("172129"),
+		OutlineColor = Color3.fromHex("3b5964"),
 	},
 	Dracula = {
 		FontColor = Color3.fromHex("ffffff"),
@@ -8606,6 +8474,13 @@ local themes = {
 }
 
 local customThemes = {}
+local themeTransparencies = {
+	Transparent = {
+		MainColor = 0.16,
+		BackgroundColor = 0.24,
+		OutlineColor = 0.32,
+	},
+}
 local watermarkGeneration = 0
 local watermarkRenderConnection
 local honeyPerHourGeneration = 0
@@ -8630,6 +8505,55 @@ local function getPingText()
 	return ping and string.format("%d ms", math.floor(ping + 0.5)) or "n/a"
 end
 
+local function setThemeTransparency(library, transparencies)
+	local connection = library.ThemeTransparencyConnection
+	if connection then
+		connection:Disconnect()
+		library.ThemeTransparencyConnection = nil
+	end
+
+	local defaults = library.ThemeTransparencyDefaults
+	if defaults then
+		for object, transparency in pairs(defaults) do
+			if object.Parent then
+				object.BackgroundTransparency = transparency
+			end
+		end
+	end
+	library.ThemeTransparencyDefaults = nil
+
+	if type(transparencies) ~= "table" then
+		return
+	end
+
+	defaults = setmetatable({}, { __mode = "k" })
+	local function applyTransparency(object)
+		if not object:IsA("GuiObject") or object.BackgroundTransparency >= 1 then
+			return
+		end
+
+		local surfaceName
+		if object.BackgroundColor3 == library.MainColor then
+			surfaceName = "MainColor"
+		elseif object.BackgroundColor3 == library.BackgroundColor then
+			surfaceName = "BackgroundColor"
+		elseif object.BackgroundColor3 == library.OutlineColor then
+			surfaceName = "OutlineColor"
+		end
+		local transparency = surfaceName and transparencies[surfaceName]
+		if transparency then
+			defaults[object] = object.BackgroundTransparency
+			object.BackgroundTransparency = math.max(object.BackgroundTransparency, transparency)
+		end
+	end
+
+	library.ThemeTransparencyDefaults = defaults
+	for _, descendant in ipairs(library.ScreenGui:GetDescendants()) do
+		applyTransparency(descendant)
+	end
+	library.ThemeTransparencyConnection = library.ScreenGui.DescendantAdded:Connect(applyTransparency)
+end
+
 local function applyTheme(library, colors, themeName)
 	for key, color in pairs(colors) do
 		library[key] = color
@@ -8648,6 +8572,7 @@ local function applyTheme(library, colors, themeName)
 		library.WindowOutlineGradientDuration
 	)
 	library:SetThemeStyle(themeName)
+	setThemeTransparency(library, themeTransparencies[themeName])
 end
 
 local function applySavedTheme(library, snapshot, defaultTheme)
@@ -8658,6 +8583,7 @@ local function applySavedTheme(library, snapshot, defaultTheme)
 		library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
 		library:UpdateColorsUsingRegistry()
 		library:SetThemeStyle(defaultTheme)
+		setThemeTransparency(library, themeTransparencies[defaultTheme])
 		return defaultTheme
 	end
 
@@ -8670,6 +8596,7 @@ local function applySavedTheme(library, snapshot, defaultTheme)
 		library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
 		library:UpdateColorsUsingRegistry()
 		library:SetThemeStyle(fallbackTheme)
+		setThemeTransparency(library, themeTransparencies[fallbackTheme])
 		return fallbackTheme
 	end
 
@@ -8697,6 +8624,7 @@ local function applySavedTheme(library, snapshot, defaultTheme)
 	library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
 	library:UpdateColorsUsingRegistry()
 	library:SetThemeStyle(themeName)
+	setThemeTransparency(library, themeTransparencies[themeName])
 	return themeName
 end
 
@@ -8739,6 +8667,7 @@ local function setupSettings(tab, context)
 	table.sort(themeNames)
 	themesGroup:AddDropdown("Wiggins_Theme", {
 		Text = "Theme list",
+		Tooltip = "Choose a color theme. Transparent also adds translucency to the UI surfaces.",
 		Values = themeNames,
 		Default = defaultTheme,
 		Searchable = true,
@@ -8809,6 +8738,10 @@ local function setupSettings(tab, context)
 				context.Library[name] = color
 				context.Library.AccentColorDark = context.Library:GetDarkerColor(context.Library.AccentColor)
 				context.Library:UpdateColorsUsingRegistry()
+				setThemeTransparency(
+					context.Library,
+					themeTransparencies[aztup_options.Wiggins_Theme.Value]
+				)
 				updateOutlineGradient()
 			end,
 		})
@@ -8905,7 +8838,7 @@ local function setupSettings(tab, context)
 	})
 
 	local configuration = tab:AddRightGroupbox("Configuration")
-	configuration:AddLabel("Profiles for " .. tostring(context.Config:GetGameContext() or "no game selected"))
+	configuration:AddLabel("Configuration profiles")
 	configuration:AddLabel("Configs are saved locally when file APIs are available.")
 	configuration:AddInput("Wiggins_ConfigName", {
 		Text = "Config name",
@@ -9874,7 +9807,6 @@ local Library = require("@src/utility/librarys/ui")
 local ConfigStore = require("@src/config")
 local settingsModule = require("@src/ui/tabs/Settings")
 local createEspPreview = require("@src/ui/esp_preview")
-local createSideCharacter = require("@src/ui/side_character")
 local configStore = ConfigStore.new(Library)
 local contextLoaded, contextError = configStore:SetGameContext("YSL UI Showcase")
 if not contextLoaded then
@@ -9957,7 +9889,6 @@ end)
 local settingsTab = Window:AddTab("Settings")
 local espPreview = createEspPreview(Library)
 Library.ESPPreview = espPreview
-createSideCharacter(Library)
 
 settingsModule.Setup(settingsTab, {
 	Library = Library,
