@@ -7660,17 +7660,14 @@ valueControls:AddLabel("Accent color"):AddColorPicker("Demo_AccentColor", {
 })
 
 local layoutTab = Window:AddTab("Layout and Extras")
-local nestedTabs = layoutTab:AddLeftTabbox("Tabbox example")
-local firstNestedTab = nestedTabs:AddTab("First")
-firstNestedTab:AddLabel("Tabboxes provide a second level of content switching.", true)
-firstNestedTab:AddToggle("Demo_NestedToggle", {
-	Text = "Nested toggle",
+local extraControls = layoutTab:AddLeftGroupbox("Extra Controls")
+extraControls:AddLabel("These controls use the same groupbox API as the rest of the library.", true)
+extraControls:AddToggle("Demo_ExtraToggle", {
+	Text = "Example toggle",
 	Default = false,
 })
-local secondNestedTab = nestedTabs:AddTab("Second")
-secondNestedTab:AddLabel("Controls can live inside nested tabs too.", true)
-secondNestedTab:AddSlider("Demo_NestedSlider", {
-	Text = "Nested slider",
+extraControls:AddSlider("Demo_ExtraSlider", {
+	Text = "Extra slider",
 	Default = 30,
 	Min = 0,
 	Max = 60,
