@@ -5,7 +5,7 @@ This repository contains a standalone, bundled UI-library showcase. It includes 
 ## Files
 
 - `YSLUILibrary.lua` is the standalone showcase.
-- `RunExample.lua` downloads and runs the latest showcase from GitHub.
+- `RunExample.lua` downloads and runs the verified showcase from GitHub.
 
 ## Run the example
 
