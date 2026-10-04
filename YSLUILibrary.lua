@@ -9274,10 +9274,11 @@ local function setupSettings(tab, context)
 			context.Library:SetUIFont(fontName)
 		end,
 	})
+	context.Library:SetWidgetCornersBoxy(true)
 	local windowCornerRadius = 8
 	local windowCornerRadiusSlider = interface:AddSlider("Wiggins_OuterWindowRadius", {
 		Text = "Outer window radius",
-		Tooltip = "Set the radius of the window's outside corners. Set to zero for square corners.",
+		Tooltip = "Set the outside corner radius of the window while Curved UI corners is enabled.",
 		Default = windowCornerRadius,
 		Min = 0,
 		Max = 16,
@@ -9293,20 +9294,13 @@ local function setupSettings(tab, context)
 		end,
 	})
 	interface:AddToggle("Wiggins_RoundOuterWindow", {
-		Text = "Round outer window",
-		Tooltip = "Off restores the current square window outline.",
+		Text = "Curved UI corners",
+		Tooltip = "Enable rounded corners for the outer window and widgets. Turn off for square corners.",
 		Default = false,
 		Callback = function(enabled)
 			windowCornerRadiusSlider:SetDisabled(not enabled)
 			context.Library:SetWindowCornerRadius(enabled and windowCornerRadius or nil)
-		end,
-	})
-	interface:AddToggle("Wiggins_BoxyWidgets", {
-		Text = "Boxy widgets",
-		Tooltip = "Remove rounded corners from every UI widget, including widgets created later.",
-		Default = false,
-		Callback = function(enabled)
-			context.Library:SetWidgetCornersBoxy(enabled)
+			context.Library:SetWidgetCornersBoxy(not enabled)
 		end,
 	})
 	interface:AddToggle("YSL_ShowSideImage", {
