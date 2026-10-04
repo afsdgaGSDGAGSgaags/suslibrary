@@ -4,7 +4,7 @@ This repository contains a standalone bundle of the YSL Method interface with ga
 
 Settings uses YSL Method's settings module, including themes, interface controls, configuration management, watermark, keybind panel, console, HUD transparency, and window outline controls. The default theme is Mint; the theme list also includes Transparent, which makes the UI surfaces translucent.
 
-The Settings page's Show Keybinds toggle is also bound to `H` by default, and its key can be changed in the UI. The Main page includes a key-bound placeholder toggle (`G` by default) to demonstrate the keybind panel.
+The Settings page's Show Keybinds toggle is also bound to `H` by default, and its key can be changed in the UI. The Main page includes a key-bound placeholder toggle (`G` by default) to demonstrate the keybind panel. Settings also includes a Cute anime girl toggle that displays the supplied image asset beside the window, opposite the ESP Preview.
 
 ## Files
 

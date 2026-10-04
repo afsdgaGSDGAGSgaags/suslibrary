@@ -8213,6 +8213,76 @@ return function(library)
 	}
 end
 	end,
+	["@src/ui/side_image"] = function()
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+
+local IMAGE = "rbxassetid://12454398434"
+
+return function(library)
+	local image = library:Create("ImageLabel", {
+		Name = "YSL_SideImage",
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Image = IMAGE,
+		ScaleType = Enum.ScaleType.Fit,
+		Size = UDim2.fromOffset(200, 230),
+		Visible = false,
+		ZIndex = 450,
+		Parent = library.ScreenGui,
+	})
+	library:AddUIScale(image)
+
+	local enabled = true
+	local function updatePlacement()
+		if not enabled or library.Toggled ~= true then
+			image.Visible = false
+			return
+		end
+
+		local window = library.WindowHolder
+		local camera = workspace.CurrentCamera
+		if not window or not window.Parent or not camera then
+			image.Visible = false
+			return
+		end
+
+		local topLeftInset, bottomRightInset = Vector2.zero, Vector2.zero
+		if not library.ScreenGui.IgnoreGuiInset then
+			topLeftInset, bottomRightInset = GuiService:GetGuiInset()
+		end
+		local viewportSize = camera.ViewportSize - topLeftInset - bottomRightInset
+		local windowPosition = window.AbsolutePosition - topLeftInset
+		local imageSize = image.AbsoluteSize
+		local uiScale = math.max(library:GetUIScale(), 0.01)
+		local x = math.clamp(
+			windowPosition.X - imageSize.X - 10,
+			8,
+			math.max(8, viewportSize.X - imageSize.X - 8)
+		)
+		local y = math.clamp(
+			windowPosition.Y + 58,
+			8,
+			math.max(8, viewportSize.Y - imageSize.Y - 8)
+		)
+
+		image.Position = UDim2.fromOffset(x / uiScale, y / uiScale)
+		image.Visible = true
+	end
+
+	library:GiveSignal(RunService.RenderStepped:Connect(updatePlacement))
+	library:GiveSignal(library.OnToggledChanged.Event:Connect(updatePlacement))
+	library:GiveSignal(library.ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
+
+	return {
+		Frame = image,
+		SetEnabled = function(_, value)
+			enabled = value == true
+			updatePlacement()
+		end,
+	}
+end
+	end,
 	["@src/ui/tabs/Settings"] = function()
 local themes = {
 	Nord = {
@@ -8866,6 +8936,16 @@ local function setupSettings(tab, context)
 		Default = false,
 		Callback = function(enabled)
 			context.Library:SetWidgetCornersBoxy(enabled)
+		end,
+	})
+	interface:AddToggle("YSL_ShowSideImage", {
+		Text = "Cute anime girl",
+		Tooltip = "Show the supplied image beside the window, opposite the ESP preview.",
+		Default = true,
+		Callback = function(enabled)
+			if context.SideImage then
+				context.SideImage:SetEnabled(enabled)
+			end
 		end,
 	})
 
@@ -9839,6 +9919,7 @@ local Library = require("@src/utility/librarys/ui")
 local ConfigStore = require("@src/config")
 local settingsModule = require("@src/ui/tabs/Settings")
 local createEspPreview = require("@src/ui/esp_preview")
+local createSideImage = require("@src/ui/side_image")
 local configStore = ConfigStore.new(Library)
 local contextLoaded, contextError = configStore:SetGameContext("YSL UI Showcase")
 if not contextLoaded then
@@ -9921,6 +10002,7 @@ end)
 local settingsTab = Window:AddTab("Settings")
 local espPreview = createEspPreview(Library)
 Library.ESPPreview = espPreview
+local sideImage = createSideImage(Library)
 
 settingsModule.Setup(settingsTab, {
 	Library = Library,
@@ -9930,6 +10012,7 @@ settingsModule.Setup(settingsTab, {
 	GameName = "YSL UI Showcase",
 	ShowcaseOnly = true,
 	StartupTheme = startupTheme,
+	SideImage = sideImage,
 	SetStatus = setStatus,
 })
 
