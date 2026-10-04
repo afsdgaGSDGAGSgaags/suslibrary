@@ -36,7 +36,7 @@ When porting, capture each original corner radius only once. Do not overwrite th
 
 The side-image code in `YSLUILibrary.lua` provides a useful Roblox-specific reference for image placement:
 
-- It keeps side images in a transparent container and does not let the mascot intercept pointer input in the version that anchors it to the window. Other variants allow dragging; follow the destination's UX requirement.
+- It keeps side images in a transparent container and makes them draggable. The current showcase saves their positions; if the destination should anchor the mascot to the window instead, use the earlier window-relative placement logic rather than adding drag handling.
 - It computes a default position relative to the window, preview, and viewport, and clamps that position to the visible viewport.
 - It creates images lazily, preloads assets, and emits a warning when Roblox reports a failed asset fetch.
 - Selection and position are stored through the config API. Keep Roblox asset IDs validated as numeric strings if accepting custom IDs.
@@ -54,7 +54,7 @@ The remote bundle is generated for this showcase repository. If the destination 
 
 - One setting controls both the window and widget corner styles.
 - The disabled/default state is square; enabling curves both.
-- The radius slider is disabled in square mode and updates both rounded surfaces in curved mode.
+- The radius slider is disabled in square mode and adjusts the outer window radius in curved mode. Widgets restore their individual original radii; they do not all receive the window's exact pixel radius.
 - Newly created widgets follow the current setting.
 - Loading a saved profile applies the same combined state as manually toggling it.
 - Unloading does not leave duplicate GUIs, live connections, or stale overlays.
