@@ -12603,7 +12603,12 @@ funPlaceholders:AddDropdown("Demo_FunMode", {
 	Values = { "Default", "Alternate", "Custom" },
 	Default = "Default",
 })
-funPlaceholders:AddLabel("Example keybind"):AddKeyPicker("Demo_FunKey", {
+local funKeybind = funPlaceholders:AddToggle("Demo_FunKeybindToggle", {
+	Text = "Example keybind",
+	Default = false,
+	ArrayList = false,
+})
+funKeybind:AddKeyPicker("Demo_FunKey", {
 	Text = "Example keybind",
 	Default = "G",
 })
