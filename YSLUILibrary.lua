@@ -12603,7 +12603,7 @@ funPlaceholders:AddDropdown("Demo_FunMode", {
 	Values = { "Default", "Alternate", "Custom" },
 	Default = "Default",
 })
-funPlaceholders:AddKeyPicker("Demo_FunKey", {
+funPlaceholders:AddLabel("Example keybind"):AddKeyPicker("Demo_FunKey", {
 	Text = "Example keybind",
 	Default = "G",
 })
