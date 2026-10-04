@@ -8280,7 +8280,7 @@ return function(library)
 			or windowPosition.X + window.AbsoluteSize.X - 100
 		local x = math.clamp(preferredX, 8, math.max(8, viewportSize.X - imageSize.X - 8))
 		local y = math.clamp(
-			windowPosition.Y + window.AbsoluteSize.Y - imageSize.Y,
+			windowPosition.Y - imageSize.Y + 96,
 			8,
 			math.max(8, viewportSize.Y - imageSize.Y - 8)
 		)
