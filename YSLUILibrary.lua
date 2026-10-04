@@ -7530,6 +7530,7 @@ end
 	end,
 	["@src/ui/esp_preview"] = function()
 local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
 
 return function(library)
 	local screenGui = library.ScreenGui
@@ -7542,10 +7543,11 @@ return function(library)
 		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.fromOffset(270, 230),
 		Visible = true,
-		ZIndex = 2,
-		Parent = library.WindowHolder or screenGui,
+		ZIndex = 500,
+		Parent = screenGui,
 	})
 	library.ESPPreviewFrame = frame
+	library:AddUIScale(frame)
 	local previewStroke = library:Create("UIStroke", {
 		Color = library.AccentColor,
 		Thickness = 3,
@@ -7563,7 +7565,7 @@ return function(library)
 		BackgroundTransparency = math.clamp((library.HudTransparency or 0.18) - 0.08, 0, 0.8),
 		BorderSizePixel = 0,
 		Size = UDim2.new(1, 0, 0, 30),
-		ZIndex = 181,
+		ZIndex = 501,
 		Parent = frame,
 	})
 	library.ESPPreviewHeader = header
@@ -7579,7 +7581,7 @@ return function(library)
 		TextSize = 12,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextStrokeTransparency = 1,
-		ZIndex = 182,
+		ZIndex = 502,
 		Parent = header,
 	})
 	title.FontFace = lexend.bold
@@ -7596,7 +7598,7 @@ return function(library)
 		Ambient = Color3.fromRGB(170, 170, 170),
 		LightColor = Color3.new(1, 1, 1),
 		LightDirection = Vector3.new(-1, -1, -1),
-		ZIndex = 181,
+		ZIndex = 501,
 		Parent = frame,
 	})
 	library.ESPPreviewViewport = viewport
@@ -7720,7 +7722,7 @@ return function(library)
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		Size = UDim2.new(0.42, 4, 0.78, 4),
 		Visible = false,
-		ZIndex = 182,
+		ZIndex = 502,
 		Parent = viewport,
 	})
 	local boxOutlineStroke = library:Create("UIStroke", {
@@ -7739,7 +7741,7 @@ return function(library)
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		Size = UDim2.new(0.42, 0, 0.78, 0),
 		Visible = false,
-		ZIndex = 183,
+		ZIndex = 503,
 		Parent = viewport,
 	})
 	local boxStroke = library:Create("UIStroke", {
@@ -7759,7 +7761,7 @@ return function(library)
 		Position = UDim2.new(0.25, 0, 0.5, 0),
 		Size = UDim2.new(0, 8, 0.72, 0),
 		Visible = false,
-		ZIndex = 184,
+		ZIndex = 504,
 		Parent = viewport,
 	})
 	library:Create("UIStroke", {
@@ -7774,7 +7776,7 @@ return function(library)
 		BorderSizePixel = 0,
 		Position = UDim2.fromScale(0, 1),
 		Size = UDim2.new(1, 0, 1, 0),
-		ZIndex = 185,
+		ZIndex = 505,
 		Parent = healthTrack,
 	})
 	local healthGradient = library:Create("UIGradient", {
@@ -7794,7 +7796,7 @@ return function(library)
 			BorderSizePixel = 0,
 			Position = UDim2.new(0, 0, 1 - fraction, 0),
 			Size = UDim2.new(1, 0, 0, 1),
-			ZIndex = 186,
+			ZIndex = 506,
 			Parent = healthTrack,
 		})
 		table.insert(healthDividers, divider)
@@ -7810,7 +7812,7 @@ return function(library)
 		TextColor3 = library.FontColor,
 		TextSize = 11,
 		TextStrokeTransparency = 0.2,
-		ZIndex = 184,
+		ZIndex = 504,
 		Parent = viewport,
 	})
 	nameTag.Visible = false
@@ -7831,7 +7833,7 @@ return function(library)
 		TextSize = 11,
 		TextStrokeTransparency = 0.2,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		ZIndex = 184,
+		ZIndex = 504,
 		Parent = viewport,
 	})
 	bottomTag.Visible = false
@@ -7849,14 +7851,14 @@ return function(library)
 		Position = UDim2.new(0.24, 0, 0.92, 0),
 		Size = UDim2.new(0.52, 0, 0, 5),
 		Visible = false,
-		ZIndex = 184,
+		ZIndex = 504,
 		Parent = viewport,
 	})
 	local ultimateFill = library:Create("Frame", {
 		BackgroundColor3 = library.AccentColorDark or library:GetDarkerColor(library.AccentColor),
 		BorderSizePixel = 0,
 		Size = UDim2.new(0.72, 0, 1, 0),
-		ZIndex = 185,
+		ZIndex = 505,
 		Parent = ultimateTrack,
 	})
 	library:AddToRegistry(ultimateFill, {
@@ -7871,7 +7873,7 @@ return function(library)
 		Position = UDim2.new(0, 0, 1, 2),
 		Size = UDim2.new(0.38, 0, 0, 3),
 		Visible = false,
-		ZIndex = 185,
+		ZIndex = 505,
 		Parent = ultimateTrack,
 	})
 	library:AddToRegistry(secondUltimateFill, {
@@ -7887,7 +7889,7 @@ return function(library)
 			Position = UDim2.new(0.79, 0, 0.16, (index - 1) * 35),
 			Size = UDim2.fromOffset(30, 30),
 			Visible = false,
-			ZIndex = 184,
+			ZIndex = 504,
 			Parent = viewport,
 		})
 		local cardStroke = library:Create("UIStroke", {
@@ -7910,7 +7912,7 @@ return function(library)
 			TextColor3 = library.FontColor,
 			TextSize = 12,
 			TextStrokeTransparency = 1,
-			ZIndex = 185,
+			ZIndex = 505,
 			Parent = card,
 		})
 		library:AddToRegistry(cardLabel, {
@@ -7930,7 +7932,7 @@ return function(library)
 		TextSize = 9,
 		TextStrokeTransparency = 1,
 		Visible = false,
-		ZIndex = 184,
+		ZIndex = 504,
 		Parent = viewport,
 	})
 	library:AddToRegistry(infoTag, {
@@ -8091,8 +8093,12 @@ return function(library)
 		if not window or not window.Parent or not cameraObject then
 			return
 		end
-		local viewportSize = cameraObject.ViewportSize
-		local windowPosition = window.AbsolutePosition
+		local topLeftInset, bottomRightInset = Vector2.zero, Vector2.zero
+		if not screenGui.IgnoreGuiInset then
+			topLeftInset, bottomRightInset = GuiService:GetGuiInset()
+		end
+		local viewportSize = cameraObject.ViewportSize - topLeftInset - bottomRightInset
+		local windowPosition = window.AbsolutePosition - topLeftInset
 		local windowSize = window.AbsoluteSize
 		local previewSize = frame.AbsoluteSize
 		local gap = 10
@@ -8111,12 +8117,13 @@ return function(library)
 		)
 		local uiScale = library:GetUIScale()
 		frame.Position = UDim2.fromOffset(
-			(x - windowPosition.X) / uiScale,
-			(y - windowPosition.Y) / uiScale
+			x / uiScale,
+			y / uiScale
 		)
 	end
 
 	local function updateVisibility()
+		frame.Visible = library.Toggled == true
 		updatePlacement()
 	end
 	local function updatePreview()
@@ -8147,6 +8154,7 @@ return function(library)
 		library:GiveSignal(library.WindowHolder:GetPropertyChangedSignal("AbsolutePosition"):Connect(updatePlacement))
 		library:GiveSignal(library.WindowHolder:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
 	end
+	library:GiveSignal(screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
 	library:GiveSignal(library.OnToggledChanged.Event:Connect(updateVisibility))
 	local viewportSizeConnection
 	local function updateCameraBinding()
