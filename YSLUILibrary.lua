@@ -8366,91 +8366,255 @@ end
 	["@src/ui/side_image"] = function()
 local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
-local RunService = game:GetService("RunService")
 
-local IMAGE = "rbxthumb://type=Asset&id=81182146149930&w=420&h=420"
+local DEFAULT_ASSETS = {
+	["Anime Girl 1"] = "81182146149930",
+	["Anime Girl 2"] = "74029364711949",
+}
+local IMAGE_SIZE = UDim2.fromOffset(300, 360)
 
 return function(library)
-	local image = library:Create("ImageLabel", {
-		Name = "YSL_SideImage",
+	local container = library:Create("Frame", {
+		Name = "YSL_SideImages",
 		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		Image = IMAGE,
-		ScaleType = Enum.ScaleType.Fit,
-		Size = UDim2.fromOffset(300, 360),
-		Visible = false,
+		ClipsDescendants = false,
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromScale(0, 0),
 		ZIndex = 0,
 		Parent = library.ScreenGui,
 	})
-	library:AddUIScale(image)
 
+	local assets = table.clone(DEFAULT_ASSETS)
+	local images = {}
+	local selection = { ["Anime Girl 1"] = true }
 	local enabled = true
-	local function updatePlacement()
-		if not enabled or library.Toggled ~= true then
-			image.Visible = false
-			return
-		end
+	local onChanged
+	local activeDrag
+	local dragMoved = false
 
-		local window = library.WindowHolder
+	local function viewportBounds()
 		local camera = workspace.CurrentCamera
-		if not window or not window.Parent or not camera then
-			image.Visible = false
-			return
+		if not camera then
+			return nil
 		end
-
 		local topLeftInset, bottomRightInset = Vector2.zero, Vector2.zero
 		if not library.ScreenGui.IgnoreGuiInset then
 			topLeftInset, bottomRightInset = GuiService:GetGuiInset()
 		end
-		local viewportSize = camera.ViewportSize - topLeftInset - bottomRightInset
-		local windowPosition = window.AbsolutePosition - topLeftInset
-		local imageSize = image.AbsoluteSize
-		local uiScale = math.max(library:GetUIScale(), 0.01)
+		return camera.ViewportSize - topLeftInset - bottomRightInset, topLeftInset
+	end
+
+	local function getDefaultPosition(index)
+		local window = library.WindowHolder
+		local viewportSize, inset = viewportBounds()
+		if not window or not viewportSize then
+			return UDim2.fromOffset(16 + (index - 1) * 36, 80)
+		end
+
+		local windowPosition = window.AbsolutePosition - inset
+		local imageSize = Vector2.new(IMAGE_SIZE.X.Offset, IMAGE_SIZE.Y.Offset)
 		local preview = library.ESPPreviewFrame
 		local previewOnRight = not preview
 			or preview.AbsolutePosition.X >= window.AbsolutePosition.X + window.AbsoluteSize.X / 2
 		local preferredX = previewOnRight
 			and windowPosition.X - imageSize.X + 100
 			or windowPosition.X + window.AbsoluteSize.X - 100
-		local x = math.clamp(preferredX, 8, math.max(8, viewportSize.X - imageSize.X - 8))
-		local y = math.clamp(
-			windowPosition.Y - imageSize.Y + 96,
-			8,
-			math.max(8, viewportSize.Y - imageSize.Y - 8)
-		)
-
-		image.Rotation = previewOnRight and 5 or -5
-		image.Position = UDim2.fromOffset(x / uiScale, y / uiScale)
-		image.Visible = true
+		local x = math.clamp(preferredX + (index - 1) * 36, 8, math.max(8, viewportSize.X - imageSize.X - 8))
+		local y = math.clamp(windowPosition.Y - imageSize.Y + 96 + (index - 1) * 30, 8, math.max(8, viewportSize.Y - imageSize.Y - 8))
+		return UDim2.fromOffset(x, y)
 	end
 
-	library:GiveSignal(RunService.RenderStepped:Connect(updatePlacement))
-	library:GiveSignal(library.OnToggledChanged.Event:Connect(updatePlacement))
-	library:GiveSignal(library.ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
-	task.spawn(function()
-		local success, err = pcall(function()
-			ContentProvider:PreloadAsync({ image }, function(assetId, status)
-				if status ~= Enum.AssetFetchStatus.Success then
-					warn(string.format(
-						"[YSL Method] Side image asset %s failed to load (%s).",
-						tostring(assetId),
-						tostring(status)
-					))
-				end
+	local function preload(image)
+		task.spawn(function()
+			local success, err = pcall(function()
+				ContentProvider:PreloadAsync({ image }, function(assetId, status)
+					if status ~= Enum.AssetFetchStatus.Success then
+						warn(string.format(
+							"[YSL Method] Side image asset %s failed to load (%s).",
+							tostring(assetId),
+							tostring(status)
+						))
+					end
+				end)
 			end)
+			if not success then
+				warn("[YSL Method] Could not load side image asset: " .. tostring(err))
+			end
 		end)
-		if not success then
-			warn("[YSL Method] Could not load the side image asset: " .. tostring(err))
-		end
-	end)
+	end
 
-	return {
-		Frame = image,
-		SetEnabled = function(_, value)
-			enabled = value == true
-			updatePlacement()
-		end,
-	}
+	local function ensureImage(name, index)
+		local image = images[name]
+		if image then
+			return image
+		end
+		image = library:Create("ImageLabel", {
+			Name = "YSL_SideImage_" .. name:gsub("%W", ""),
+			Active = true,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Image = "rbxthumb://type=Asset&id=" .. assets[name] .. "&w=420&h=420",
+			ScaleType = Enum.ScaleType.Fit,
+			Size = IMAGE_SIZE,
+			Position = getDefaultPosition(index),
+			Visible = false,
+			ZIndex = 0,
+			Parent = container,
+		})
+		library:AddUIScale(image)
+		image.Rotation = 5
+		images[name] = image
+		library:MakeDraggable(image, IMAGE_SIZE.Y.Offset + 20)
+		image.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				activeDrag = image
+				dragMoved = false
+			end
+		end)
+		preload(image)
+		return image
+	end
+
+	local function refresh()
+		if not enabled or library.Toggled ~= true then
+			for _, image in pairs(images) do
+				image.Visible = false
+			end
+			return
+		end
+		local index = 0
+		for name, image in pairs(images) do
+			local selected = selection[name] == true
+			image.Visible = selected
+			if selected then
+				index += 1
+			end
+		end
+	end
+
+	local controller = {}
+	function controller:SetEnabled(value)
+		enabled = value == true
+		refresh()
+	end
+
+	function controller:SetSelection(value)
+		selection = {}
+		if type(value) == "table" then
+			for name, selected in pairs(value) do
+				if selected == true and assets[name] then
+					selection[name] = true
+				end
+			end
+		end
+		local index = 0
+		local selectedNames = {}
+		for name in pairs(selection) do
+			table.insert(selectedNames, name)
+		end
+		table.sort(selectedNames)
+		for _, name in ipairs(selectedNames) do
+			index += 1
+			local image = ensureImage(name, index)
+			image.Visible = enabled and library.Toggled == true
+		end
+		refresh()
+	end
+
+	function controller:AddAsset(rawId)
+		local id = tostring(rawId or ""):match("^%s*(%d+)%s*$")
+		if not id then
+			return false, "Enter a numeric Roblox image asset ID."
+		end
+		local name = "Custom " .. id
+		if not assets[name] then
+			assets[name] = id
+		end
+		local nextSelection = table.clone(selection)
+		nextSelection[name] = true
+		controller:SetSelection(nextSelection)
+		return true, name
+	end
+
+	function controller:GetAssetNames()
+		local names = {}
+		for name in pairs(assets) do
+			table.insert(names, name)
+		end
+		table.sort(names)
+		return names
+	end
+
+	function controller:SetOnChanged(callback)
+		onChanged = callback
+	end
+
+	function controller:GetConfigState()
+		local state = {
+			assets = table.clone(assets),
+			selection = table.clone(selection),
+			positions = {},
+		}
+		for name, image in pairs(images) do
+			state.positions[name] = {
+				xScale = image.Position.X.Scale,
+				xOffset = image.Position.X.Offset,
+				yScale = image.Position.Y.Scale,
+				yOffset = image.Position.Y.Offset,
+				rotation = image.Rotation,
+			}
+		end
+		return state
+	end
+
+	function controller:SetConfigState(state)
+		if type(state) ~= "table" then
+			return false
+		end
+		if type(state.assets) == "table" then
+			for name, id in pairs(state.assets) do
+				if type(name) == "string" and name:match("^Custom %d+$")
+					and type(id) == "string" and id:match("^%d+$") then
+					assets[name] = id
+				end
+			end
+		end
+		controller:SetSelection(state.selection)
+		if type(state.positions) == "table" then
+			for name, position in pairs(state.positions) do
+				local image = images[name]
+				if image and type(position) == "table" then
+					image.Position = UDim2.new(
+						math.clamp(tonumber(position.xScale) or 0, 0, 1),
+						math.clamp(tonumber(position.xOffset) or 0, -10000, 10000),
+						math.clamp(tonumber(position.yScale) or 0, 0, 1),
+						math.clamp(tonumber(position.yOffset) or 0, -10000, 10000)
+					)
+					image.Rotation = math.clamp(tonumber(position.rotation) or 5, -45, 45)
+				end
+			end
+		end
+		refresh()
+		return true
+	end
+
+	library:GiveSignal(library.OnToggledChanged.Event:Connect(refresh))
+	library:GiveSignal(library.ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refresh))
+	library:GiveSignal(UserInputService.InputChanged:Connect(function(input)
+		if activeDrag and input.UserInputType == Enum.UserInputType.MouseMovement and input.Delta.Magnitude > 0 then
+			dragMoved = true
+		end
+	end))
+	library:GiveSignal(UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 and activeDrag then
+			activeDrag = nil
+			if dragMoved and onChanged then
+				onChanged()
+			end
+			dragMoved = false
+		end
+	end))
+	return controller
 end
 	end,
 	["@src/ui/tabs/Settings"] = function()
@@ -9134,7 +9298,7 @@ local function setupSettings(tab, context)
 	})
 	interface:AddToggle("YSL_ShowSideImage", {
 		Text = "Cute anime girl",
-		Tooltip = "Show the supplied image beside the window, opposite the ESP preview.",
+		Tooltip = "Show the selected image(s). Drag each image to position it; its position is saved with your config.",
 		Default = true,
 		Callback = function(enabled)
 			if context.SideImage then
@@ -9142,6 +9306,41 @@ local function setupSettings(tab, context)
 			end
 		end,
 	})
+	local imageNames = context.SideImage and context.SideImage:GetAssetNames()
+		or { "Anime Girl 1", "Anime Girl 2" }
+	local sideImageDropdown = interface:AddDropdown("YSL_SideImages", {
+		Text = "Side images",
+		Tooltip = "Select one or more images to show. Drag images on screen to move them; positions are included in saved configs.",
+		Values = imageNames,
+		Multi = true,
+		Default = { "Anime Girl 1" },
+		Callback = function(selection)
+			if context.SideImage then
+				context.SideImage:SetSelection(selection)
+			end
+		end,
+	})
+	interface:AddInput("YSL_CustomSideImageId", {
+		Text = "Custom image asset ID",
+		Tooltip = "Enter a numeric Roblox image or decal asset ID to add it to the side-image dropdown.",
+		Default = "",
+		Placeholder = "Roblox asset ID",
+		Finished = true,
+	})
+	interface:AddButton("Add custom image", function()
+		if not context.SideImage then
+			context.SetStatus("Side images are unavailable")
+			return
+		end
+		local ok, result = context.SideImage:AddAsset(aztup_options.YSL_CustomSideImageId.Value)
+		if not ok then
+			context.SetStatus(result)
+			return
+		end
+		sideImageDropdown:SetValues(context.SideImage:GetAssetNames())
+		sideImageDropdown:SetValue(context.SideImage:GetConfigState().selection)
+		context.SetStatus("added " .. result)
+	end)
 
 	local configuration = tab:AddRightGroupbox("Configuration")
 	configuration:AddLabel("Configuration profiles")
@@ -9886,7 +10085,13 @@ function ConfigStore:Save(name)
 	if name == "" or not string.match(name, "^[%w _%-]+$") then
 		return false, "Use letters, numbers, spaces, _ or - for config names."
 	end
-	local snapshot = { toggles = {}, options = {}, layout = self.library and self.library:GetLayoutSnapshot() or nil }
+	local snapshot = {
+		toggles = {},
+		options = {},
+		layout = self.library and self.library:GetLayoutSnapshot() or nil,
+		sideImages = self.library and self.library.SideImageController
+			and self.library.SideImageController:GetConfigState() or nil,
+	}
 	for id, toggle in pairs(aztup_toggles) do
 		if toggle.Type == "Toggle" then
 			snapshot.toggles[id] = toggle.Value
@@ -9955,6 +10160,15 @@ function ConfigStore:Load(name)
 				toggle:SetValue(value)
 			end)
 		end
+	end
+	if snapshot.sideImages and self.library and self.library.SideImageController then
+		apply("side images", function()
+			self.library.SideImageController:SetConfigState(snapshot.sideImages)
+			local dropdown = aztup_options.YSL_SideImages
+			if dropdown then
+				dropdown:SetValues(self.library.SideImageController:GetAssetNames())
+			end
+		end)
 	end
 	for id, item in pairs(snapshot.options or {}) do
 		local option = aztup_options[id]
@@ -10200,6 +10414,7 @@ ambience:SetMode("Rain")
 local espPreview = createEspPreview(Library)
 Library.ESPPreview = espPreview
 local sideImage = createSideImage(Library)
+Library.SideImageController = sideImage
 
 settingsModule.Setup(settingsTab, {
 	Library = Library,
@@ -10216,6 +10431,33 @@ settingsModule.Setup(settingsTab, {
 local sideImageToggle = aztup_toggles.YSL_ShowSideImage
 if sideImageToggle then
 	sideImage:SetEnabled(sideImageToggle.Value)
+end
+sideImage:SetOnChanged(function()
+	local configList = aztup_options.Wiggins_ConfigList
+	local configName = configList and configList.Value or configStore:GetAutoLoadName()
+	if not configName then
+		setStatus("Create or select a config to save mascot positions")
+		return
+	end
+	local saved, saveError = configStore:Save(configName)
+	if not saved then
+		warn("[YSL Method] Could not save mascot positions: " .. tostring(saveError))
+		setStatus(saveError)
+	end
+end)
+local sideImageDropdown = aztup_options.YSL_SideImages
+if sideImageDropdown then
+	sideImage:SetSelection(sideImageDropdown.Value)
+end
+if configStore:GetAutoLoadName() then
+	local callSuccess, loadSuccess, loadError = pcall(function()
+		return configStore:LoadAutoLoad()
+	end)
+	if not callSuccess then
+		warn("[YSL Method] Autoload config failed: " .. tostring(loadSuccess))
+	elseif not loadSuccess then
+		warn("[YSL Method] Autoload config failed: " .. tostring(loadError))
+	end
 end
 
 Library:UpdateColorsUsingRegistry()
