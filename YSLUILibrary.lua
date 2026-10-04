@@ -10605,28 +10605,29 @@ local createEspPreview = require("@src/ui/esp_preview")
 local setupTargetHUD = require("@src/ui/target_hud")
 local setupABAESP = require("@src/ui/aba_esp")
 
-local function setupPlayerEsp(playerTab, visuals)
-	setupPlayerEsp(playerTab, visuals)
-end
-
-local function setupVisuals(funTab, playerTab, context)
+local function setupVisuals(funTab, playerTab, context, settingsTab)
+	settingsTab = settingsTab or funTab
 	local library = context.Library
 	local ambience = createAmbience(library)
-	local visuals = createVisuals(library)
+	local visuals
+	if not context.ShowcaseOnly then
+		visuals = createVisuals(library)
+	end
 	local arrayList = createArrayList(library)
 	local espPreview = createEspPreview(library)
 
-	local atmosphere = funTab:AddLeftGroupbox("Atmosphere")
+	ambience:SetMode("Rain")
+	local atmosphere = settingsTab:AddLeftGroupbox("Screen Effect")
 	atmosphere:AddDropdown("YSL_Ambience", {
 		Text = "Screen effect",
 		Values = { "Off", "Rain", "Snow" },
-		Default = "Off",
+		Default = "Rain",
 		Callback = function(value)
 			ambience:SetMode(value)
 		end,
 	})
 	atmosphere:AddSlider("YSL_AmbienceIntensity", {
-		Text = "Particle count",
+		Text = "Rain / snow intensity",
 		Default = 36,
 		Min = 12,
 		Max = 48,
@@ -10635,126 +10636,17 @@ local function setupVisuals(funTab, playerTab, context)
 			ambience:SetIntensity(value)
 		end,
 	})
-	atmosphere:AddDropdown("YSL_SkyStyle", {
-		Text = "Custom sky style",
-		Tooltip = "Selects a skybox texture set. Enable Custom skybox below to apply it.",
-		Values = { "Classic", "Sunset", "Arctic", "Emerald", "Void" },
-		Default = "Classic",
-		Callback = function(style)
-			visuals:SetSkyStyle(style)
-		end,
-	})
-	atmosphere:AddToggle("YSL_AnimatedSky", {
-		Text = "Custom skybox",
-		Tooltip = "Changes only the skybox textures. Existing skies are restored when disabled.",
-		Default = false,
-		Callback = function(enabled)
-			visuals:SetAnimatedSky(enabled)
-		end,
-	})
-	atmosphere:AddToggle("YSL_CinematicWorld", {
-		Text = "Custom fog",
-		Tooltip = "Enables the configurable atmospheric fog settings.",
-		Default = false,
-		Callback = function(enabled)
-			visuals:SetFogEnabled(enabled)
-		end,
-	})
-	atmosphere:AddSlider("YSL_FogDensity", {
-		Text = "Fog density",
-		Default = 0.24,
-		Min = 0,
-		Max = 1,
-		Rounding = 2,
-		Callback = function(value)
-			visuals:SetFogDensity(value)
-		end,
-	})
-	atmosphere:AddSlider("YSL_FogOffset", {
-		Text = "Fog offset",
-		Default = 0.12,
-		Min = -1,
-		Max = 1,
-		Rounding = 2,
-		Callback = function(value)
-			visuals:SetFogOffset(value)
-		end,
-	})
-	atmosphere:AddSlider("YSL_FogHaze", {
-		Text = "Fog haze",
-		Default = 1.2,
-		Min = 0,
-		Max = 10,
-		Rounding = 1,
-		Callback = function(value)
-			visuals:SetFogHaze(value)
-		end,
-	})
-	atmosphere:AddSlider("YSL_FogGlare", {
-		Text = "Fog glare",
-		Default = 0.18,
-		Min = 0,
-		Max = 10,
-		Rounding = 1,
-		Callback = function(value)
-			visuals:SetFogGlare(value)
-		end,
-	})
-	atmosphere:AddLabel("Fog color"):AddColorPicker("YSL_FogColor", {
-		Default = Color3.fromRGB(175, 205, 235),
-		Title = "Fog color",
-		Callback = function(color)
-			visuals:SetFogColor(color)
-		end,
-	})
-	atmosphere:AddLabel("Fog decay color"):AddColorPicker("YSL_FogDecay", {
-		Default = Color3.fromRGB(85, 115, 155),
-		Title = "Fog decay color",
-		Callback = function(color)
-			visuals:SetFogDecay(color)
-		end,
-	})
-	atmosphere:AddToggle("YSL_ScreenHueEnabled", {
-		Text = "Screen hue",
-		Tooltip = "Applies an independent color tint to the whole screen.",
-		Default = false,
-		Callback = function(enabled)
-			visuals:SetHueEnabled(enabled)
-		end,
-	})
-	atmosphere:AddLabel("Screen hue color"):AddColorPicker("YSL_ScreenHueColor", {
-		Default = Color3.fromRGB(220, 235, 255),
-		Title = "Screen hue color",
-		Callback = function(color)
-			visuals:SetHueColor(color)
-		end,
-	})
-	local timeGroup = funTab:AddLeftGroupbox("Time of Day")
-	timeGroup:AddSlider("YSL_TimeOfDay", {
-		Text = "Clock time",
-		Default = game:GetService("Lighting").ClockTime,
-		Min = 0,
-		Max = 24,
-		Rounding = 1,
-		Suffix = "h",
-		Callback = function(value)
-			visuals:SetClockTime(value)
-		end,
-	})
-	timeGroup:AddToggle("YSL_CustomTimeEnabled", {
-		Text = "Override time of day",
-		Tooltip = "Applies the selected time and restores the previous time when disabled.",
-		Default = false,
-		Callback = function(enabled)
-			visuals:SetClockTimeEnabled(enabled)
-		end,
-	})
 
-	if context.GameName == "ABA" then
+	if not context.ShowcaseOnly and context.GameName == "ABA" then
 		setupABAESP(library, playerTab:AddLeftGroupbox("ABA Player ESP"), context, espPreview)
 	else
+	if not context.ShowcaseOnly then
 		espPreview:SetPlayerESP(visuals.PlayerESP)
-	local playerEsp = playerTab:AddLeftGroupbox("Player ESP")
+	end
+	local playerEsp = playerTab:AddLeftGroupbox(context.ShowcaseOnly and "ESP Preview Controls" or "Player ESP")
+	if context.ShowcaseOnly then
+		playerEsp:AddLabel("Showcase placeholders only; these do not affect other players.", true)
+	end
 	playerEsp:AddToggle("YSL_PlayerESPEnabled", {
 		Text = "Player ESP",
 		SettingsFlags = {
@@ -10775,22 +10667,32 @@ local function setupVisuals(funTab, playerTab, context)
 		Tooltip = "Enables player names, health bars, and theme-colored boxes.",
 		Default = false,
 		Callback = function(enabled)
-			visuals.PlayerESP:SetEnabled(enabled)
-			espPreview:SetOptions({ Enabled = enabled })
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetEnabled(enabled)
+			end
+			espPreview:SetOptions({
+				Boxes = enabled,
+				Health = enabled,
+				Names = enabled,
+			})
 		end,
 	})
 	playerEsp:AddLabel("Name color"):AddColorPicker("YSL_PlayerESPNameColor", {
 		Default = Color3.fromRGB(205, 214, 244),
 		Title = "Player name color",
 		Callback = function(color)
-			visuals.PlayerESP:SetNameColor(color)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetNameColor(color)
+			end
 		end,
 	})
 	playerEsp:AddLabel("Name outline color"):AddColorPicker("YSL_PlayerESPNameOutlineColor", {
 		Default = Color3.new(0, 0, 0),
 		Title = "Player name outline color",
 		Callback = function(color)
-			visuals.PlayerESP:SetNameOutlineColor(color)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetNameOutlineColor(color)
+			end
 		end,
 	})
 	playerEsp:AddToggle("YSL_PlayerESPHealthbar", {
@@ -10798,7 +10700,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Tooltip = "Shows the segmented vertical health bar beside each player.",
 		Default = false,
 		Callback = function(enabled)
-			visuals.PlayerESP:SetHealthbar(enabled)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetHealthbar(enabled)
+			end
 			espPreview:SetOptions({ Health = enabled })
 		end,
 	})
@@ -10807,7 +10711,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Tooltip = "Draws an outlined box around each player.",
 		Default = false,
 		Callback = function(enabled)
-			visuals.PlayerESP:SetBoxes(enabled)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetBoxes(enabled)
+			end
 			espPreview:SetOptions({ Boxes = enabled })
 		end,
 	})
@@ -10816,7 +10722,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Tooltip = "Shows selected player tags above and below each player.",
 		Default = true,
 		Callback = function(enabled)
-			visuals.PlayerESP:SetNames(enabled)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetNames(enabled)
+			end
 			espPreview:SetOptions({ Names = enabled })
 		end,
 	})
@@ -10825,7 +10733,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Tooltip = "Fades player labels after the configured distance.",
 		Default = false,
 		Callback = function(enabled)
-			visuals.PlayerESP:SetFadeout(enabled)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetFadeout(enabled)
+			end
 		end,
 	})
 	playerEsp:AddToggle("YSL_PlayerESPFadeoutHover", {
@@ -10833,7 +10743,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Tooltip = "Reduces fadeout for labels near the cursor.",
 		Default = true,
 		Callback = function(enabled)
-			visuals.PlayerESP:SetFadeoutHover(enabled)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetFadeoutHover(enabled)
+			end
 		end,
 	})
 	playerEsp:AddSlider("YSL_PlayerESPTextSize", {
@@ -10844,7 +10756,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Rounding = 0,
 		Suffix = " px",
 		Callback = function(value)
-			visuals.PlayerESP:SetTextSize(value)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetTextSize(value)
+			end
 		end,
 	})
 	playerEsp:AddSlider("YSL_PlayerESPFadeDistance", {
@@ -10855,7 +10769,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Rounding = 0,
 		Suffix = " studs",
 		Callback = function(value)
-			visuals.PlayerESP:SetFadeoutDistance(value)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetFadeoutDistance(value)
+			end
 		end,
 	})
 	playerEsp:AddSlider("YSL_PlayerESPMaxDistance", {
@@ -10866,7 +10782,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Rounding = 0,
 		Suffix = " studs",
 		Callback = function(value)
-			visuals.PlayerESP:SetMaxDistance(value)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetMaxDistance(value)
+			end
 		end,
 	})
 	local tags = playerEsp:AddDropdown("YSL_PlayerESPTags", {
@@ -10891,8 +10809,10 @@ local function setupVisuals(funTab, playerTab, context)
 		Ping = true,
 		Distance = true,
 	})
-	tags.Callback = function(value)
-		visuals.PlayerESP:SetTags(value)
+	if not context.ShowcaseOnly then
+		tags.Callback = function(value)
+			visuals.PlayerESP:SetTags(value)
+		end
 	end
 	local playerEspGlobal = playerTab:AddRightGroupbox("Player ESP - Global")
 	playerEspGlobal:AddDropdown("YSL_PlayerESPDistanceFormat", {
@@ -10900,7 +10820,9 @@ local function setupVisuals(funTab, playerTab, context)
 		Values = { "meters & km", "studs" },
 		Default = "meters & km",
 		Callback = function(value)
-			visuals.PlayerESP:SetDistanceInStuds(value == "studs")
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetDistanceInStuds(value == "studs")
+			end
 		end,
 	})
 	playerEspGlobal:AddSlider("YSL_PlayerESPUpdateRate", {
@@ -10911,13 +10833,27 @@ local function setupVisuals(funTab, playerTab, context)
 		Rounding = 0,
 		Suffix = " fps",
 		Callback = function(value)
-			visuals.PlayerESP:SetUpdateRate(value)
+			if not context.ShowcaseOnly then
+				visuals.PlayerESP:SetUpdateRate(value)
+			end
 		end,
 	})
 	end
 	local targetHUDGroup = playerTab:AddRightGroupbox("Target HUD")
-	setupTargetHUD(library, targetHUDGroup)
-	local arrayListGroup = funTab:AddRightGroupbox("Array List")
+	if context.ShowcaseOnly then
+		targetHUDGroup:AddLabel("Showcase placeholder controls.", true)
+		targetHUDGroup:AddToggle("Demo_TargetHUD", {
+			Text = "Enable target HUD",
+			Default = false,
+		})
+		targetHUDGroup:AddToggle("Demo_TargetHUDHealth", {
+			Text = "Show health",
+			Default = true,
+		})
+	else
+		setupTargetHUD(library, targetHUDGroup)
+	end
+	local arrayListGroup = settingsTab:AddRightGroupbox("Array List")
 	arrayListGroup:AddToggle("YSL_ArrayListEnabled", {
 		Text = "Show enabled features",
 		Default = false,
@@ -10949,7 +10885,9 @@ local function setupVisuals(funTab, playerTab, context)
 	local controller = {}
 	function controller:SetGradient(enabled, duration)
 		arrayList:SetGradient(enabled, duration)
-		visuals:SetGradient(enabled, duration)
+		if visuals then
+			visuals:SetGradient(enabled, duration)
+		end
 	end
 	library.VisualsController = controller
 	controller:SetGradient(
@@ -10967,6 +10905,1534 @@ return {
 	Setup = setupVisuals,
 }
 	end,
+	["@src/ui/tabs/Settings"] = function()
+local themes = {
+	Nord = {
+		FontColor = Color3.fromHex("e5e9f0"),
+		MainColor = Color3.fromHex("2e3440"),
+		AccentColor = Color3.fromHex("88c0d0"),
+		BackgroundColor = Color3.fromHex("242933"),
+		OutlineColor = Color3.fromHex("3b4252"),
+	},
+	Forest = {
+		FontColor = Color3.fromHex("e8f5e9"),
+		MainColor = Color3.fromHex("1b3124"),
+		AccentColor = Color3.fromHex("66bb6a"),
+		BackgroundColor = Color3.fromHex("15261c"),
+		OutlineColor = Color3.fromHex("294334"),
+	},
+	Mint = {
+		FontColor = Color3.fromHex("ffffff"),
+		MainColor = Color3.fromHex("242424"),
+		AccentColor = Color3.fromHex("3db488"),
+		BackgroundColor = Color3.fromHex("1c1c1c"),
+		OutlineColor = Color3.fromHex("373737"),
+	},
+	Dracula = {
+		FontColor = Color3.fromHex("ffffff"),
+		MainColor = Color3.fromHex("232533"),
+		AccentColor = Color3.fromHex("6271a5"),
+		BackgroundColor = Color3.fromHex("1b1c27"),
+		OutlineColor = Color3.fromHex("7c82a7"),
+	},
+	Midnight = {
+		FontColor = Color3.fromHex("f5f7ff"),
+		MainColor = Color3.fromHex("151826"),
+		AccentColor = Color3.fromHex("4f7dff"),
+		BackgroundColor = Color3.fromHex("10121b"),
+		OutlineColor = Color3.fromHex("272c3f"),
+	},
+	Iceberg = {
+		FontColor = Color3.fromHex("e0f4ff"),
+		MainColor = Color3.fromHex("1f2933"),
+		AccentColor = Color3.fromHex("5bc0eb"),
+		BackgroundColor = Color3.fromHex("151a23"),
+		OutlineColor = Color3.fromHex("324154"),
+	},
+	Monokai = {
+		FontColor = Color3.fromHex("f8f8f2"),
+		MainColor = Color3.fromHex("272822"),
+		AccentColor = Color3.fromHex("a6e22e"),
+		BackgroundColor = Color3.fromHex("1e1f1c"),
+		OutlineColor = Color3.fromHex("49483e"),
+	},
+	Ocean = {
+		FontColor = Color3.fromHex("e2f3f8"),
+		MainColor = Color3.fromHex("173744"),
+		AccentColor = Color3.fromHex("36c2c9"),
+		BackgroundColor = Color3.fromHex("0d232c"),
+		OutlineColor = Color3.fromHex("2a5663"),
+	},
+	Terminal = {
+		FontColor = Color3.fromHex("d6f5d6"),
+		MainColor = Color3.fromHex("13271a"),
+		AccentColor = Color3.fromHex("78d882"),
+		BackgroundColor = Color3.fromHex("0b180f"),
+		OutlineColor = Color3.fromHex("31523a"),
+	},
+	["Solarized Light"] = {
+		FontColor = Color3.fromHex("586e75"),
+		MainColor = Color3.fromHex("eee8d5"),
+		AccentColor = Color3.fromHex("268bd2"),
+		BackgroundColor = Color3.fromHex("fdf6e3"),
+		OutlineColor = Color3.fromHex("93a1a1"),
+	},
+	Ruby = {
+		FontColor = Color3.fromHex("ffebf0"),
+		MainColor = Color3.fromHex("321c28"),
+		AccentColor = Color3.fromHex("f05a79"),
+		BackgroundColor = Color3.fromHex("23131c"),
+		OutlineColor = Color3.fromHex("633348"),
+	},
+	Sunset = {
+		FontColor = Color3.fromHex("fff1e6"),
+		MainColor = Color3.fromHex("38243d"),
+		AccentColor = Color3.fromHex("ff8a5b"),
+		BackgroundColor = Color3.fromHex("24182e"),
+		OutlineColor = Color3.fromHex("70445d"),
+	},
+	Amethyst = {
+		FontColor = Color3.fromHex("f4edff"),
+		MainColor = Color3.fromHex("282039"),
+		AccentColor = Color3.fromHex("b58cff"),
+		BackgroundColor = Color3.fromHex("1b1628"),
+		OutlineColor = Color3.fromHex("51406c"),
+	},
+	["Cherry Blossom"] = {
+		FontColor = Color3.fromHex("fff0f5"),
+		MainColor = Color3.fromHex("382632"),
+		AccentColor = Color3.fromHex("ff8fb1"),
+		BackgroundColor = Color3.fromHex("261a24"),
+		OutlineColor = Color3.fromHex("70485d"),
+	},
+	Ember = {
+		FontColor = Color3.fromHex("fff1dc"),
+		MainColor = Color3.fromHex("38251e"),
+		AccentColor = Color3.fromHex("ff7138"),
+		BackgroundColor = Color3.fromHex("241813"),
+		OutlineColor = Color3.fromHex("75432e"),
+	},
+	Sapphire = {
+		FontColor = Color3.fromHex("e9f2ff"),
+		MainColor = Color3.fromHex("1d2b43"),
+		AccentColor = Color3.fromHex("5b9dff"),
+		BackgroundColor = Color3.fromHex("121b2c"),
+		OutlineColor = Color3.fromHex("354f75"),
+	},
+	["Lavender Mist"] = {
+		FontColor = Color3.fromHex("f3f0ff"),
+		MainColor = Color3.fromHex("29283d"),
+		AccentColor = Color3.fromHex("a89aff"),
+		BackgroundColor = Color3.fromHex("1b1a2c"),
+		OutlineColor = Color3.fromHex("4b486f"),
+	},
+	["Golden Hour"] = {
+		FontColor = Color3.fromHex("fff6df"),
+		MainColor = Color3.fromHex("39301f"),
+		AccentColor = Color3.fromHex("f2c14e"),
+		BackgroundColor = Color3.fromHex("241e14"),
+		OutlineColor = Color3.fromHex("75613b"),
+	},
+	Crimson = {
+		FontColor = Color3.fromHex("ffe9ed"),
+		MainColor = Color3.fromHex("351c25"),
+		AccentColor = Color3.fromHex("f0445e"),
+		BackgroundColor = Color3.fromHex("21131a"),
+		OutlineColor = Color3.fromHex("6b3443"),
+	},
+	["Rose Quartz"] = {
+		FontColor = Color3.fromHex("fff2f6"),
+		MainColor = Color3.fromHex("382b37"),
+		AccentColor = Color3.fromHex("e89bb9"),
+		BackgroundColor = Color3.fromHex("251d28"),
+		OutlineColor = Color3.fromHex("715268"),
+	},
+	["Coral Reef"] = {
+		FontColor = Color3.fromHex("eafffb"),
+		MainColor = Color3.fromHex("1e3537"),
+		AccentColor = Color3.fromHex("39d6c5"),
+		BackgroundColor = Color3.fromHex("122527"),
+		OutlineColor = Color3.fromHex("397a78"),
+	},
+	Tangerine = {
+		FontColor = Color3.fromHex("fff4e5"),
+		MainColor = Color3.fromHex("3d2b20"),
+		AccentColor = Color3.fromHex("ff9c38"),
+		BackgroundColor = Color3.fromHex("281b14"),
+		OutlineColor = Color3.fromHex("805333"),
+	},
+	Lemon = {
+		FontColor = Color3.fromHex("fffde6"),
+		MainColor = Color3.fromHex("36351e"),
+		AccentColor = Color3.fromHex("e6dc45"),
+		BackgroundColor = Color3.fromHex("242311"),
+		OutlineColor = Color3.fromHex("77733a"),
+	},
+	Jade = {
+		FontColor = Color3.fromHex("e6fff5"),
+		MainColor = Color3.fromHex("1d382e"),
+		AccentColor = Color3.fromHex("38d99a"),
+		BackgroundColor = Color3.fromHex("12271f"),
+		OutlineColor = Color3.fromHex("367a5c"),
+	},
+	Evergreen = {
+		FontColor = Color3.fromHex("e8f3e8"),
+		MainColor = Color3.fromHex("24352a"),
+		AccentColor = Color3.fromHex("8dbb67"),
+		BackgroundColor = Color3.fromHex("17251c"),
+		OutlineColor = Color3.fromHex("4c6849"),
+	},
+	Arctic = {
+		FontColor = Color3.fromHex("effaff"),
+		MainColor = Color3.fromHex("263641"),
+		AccentColor = Color3.fromHex("70d7f5"),
+		BackgroundColor = Color3.fromHex("17232d"),
+		OutlineColor = Color3.fromHex("4a7182"),
+	},
+	Glacier = {
+		FontColor = Color3.fromHex("eaf7ff"),
+		MainColor = Color3.fromHex("253849"),
+		AccentColor = Color3.fromHex("8bbcff"),
+		BackgroundColor = Color3.fromHex("172635"),
+		OutlineColor = Color3.fromHex("4d6e94"),
+	},
+	Cobalt = {
+		FontColor = Color3.fromHex("edf1ff"),
+		MainColor = Color3.fromHex("202947"),
+		AccentColor = Color3.fromHex("536dfe"),
+		BackgroundColor = Color3.fromHex("141b35"),
+		OutlineColor = Color3.fromHex("3a4d8d"),
+	},
+	["Royal Purple"] = {
+		FontColor = Color3.fromHex("f6eeff"),
+		MainColor = Color3.fromHex("30213f"),
+		AccentColor = Color3.fromHex("bd75f5"),
+		BackgroundColor = Color3.fromHex("1e162b"),
+		OutlineColor = Color3.fromHex("654586"),
+	},
+	["Grape Soda"] = {
+		FontColor = Color3.fromHex("f8eeff"),
+		MainColor = Color3.fromHex("34213c"),
+		AccentColor = Color3.fromHex("dc72e8"),
+		BackgroundColor = Color3.fromHex("24162d"),
+		OutlineColor = Color3.fromHex("70427a"),
+	},
+	["Neon Noir"] = {
+		FontColor = Color3.fromHex("f1f5f9"),
+		MainColor = Color3.fromHex("20242c"),
+		AccentColor = Color3.fromHex("ff3cac"),
+		BackgroundColor = Color3.fromHex("12151b"),
+		OutlineColor = Color3.fromHex("64405f"),
+	},
+	Coffee = {
+		FontColor = Color3.fromHex("f4e6d5"),
+		MainColor = Color3.fromHex("382b23"),
+		AccentColor = Color3.fromHex("c58b5b"),
+		BackgroundColor = Color3.fromHex("241b16"),
+		OutlineColor = Color3.fromHex("70513b"),
+	},
+	Sandstone = {
+		FontColor = Color3.fromHex("453b2c"),
+		MainColor = Color3.fromHex("e8dcc5"),
+		AccentColor = Color3.fromHex("b47b45"),
+		BackgroundColor = Color3.fromHex("f4ead7"),
+		OutlineColor = Color3.fromHex("b8a486"),
+	},
+	Paper = {
+		FontColor = Color3.fromHex("30343b"),
+		MainColor = Color3.fromHex("f0f1ed"),
+		AccentColor = Color3.fromHex("4776a8"),
+		BackgroundColor = Color3.fromHex("fafaf7"),
+		OutlineColor = Color3.fromHex("a9b0b8"),
+	},
+	Graphite = {
+		FontColor = Color3.fromHex("e1e5e9"),
+		MainColor = Color3.fromHex("292d32"),
+		AccentColor = Color3.fromHex("aeb8c2"),
+		BackgroundColor = Color3.fromHex("1a1d21"),
+		OutlineColor = Color3.fromHex("555d65"),
+	},
+	Steel = {
+		FontColor = Color3.fromHex("e7edf2"),
+		MainColor = Color3.fromHex("28333c"),
+		AccentColor = Color3.fromHex("8da9bd"),
+		BackgroundColor = Color3.fromHex("19232b"),
+		OutlineColor = Color3.fromHex("526978"),
+	},
+	Toxic = {
+		FontColor = Color3.fromHex("f0ffe8"),
+		MainColor = Color3.fromHex("28351e"),
+		AccentColor = Color3.fromHex("a8ef38"),
+		BackgroundColor = Color3.fromHex("192411"),
+		OutlineColor = Color3.fromHex("5e7d34"),
+	},
+	Void = {
+		FontColor = Color3.fromHex("eeeaff"),
+		MainColor = Color3.fromHex("211d36"),
+		AccentColor = Color3.fromHex("806bff"),
+		BackgroundColor = Color3.fromHex("131123"),
+		OutlineColor = Color3.fromHex("453d75"),
+	},
+	["High Contrast"] = {
+		FontColor = Color3.fromHex("f5f5f5"),
+		MainColor = Color3.fromHex("1b1b1b"),
+		AccentColor = Color3.fromHex("ffda44"),
+		BackgroundColor = Color3.fromHex("101010"),
+		OutlineColor = Color3.fromHex("505050"),
+	},
+}
+
+local customThemes = {}
+local watermarkGeneration = 0
+local watermarkRenderConnection
+local honeyPerHourGeneration = 0
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local titleFontNames = {}
+for _, font in ipairs(Enum.Font:GetEnumItems()) do
+	table.insert(titleFontNames, font.Name)
+end
+table.sort(titleFontNames)
+
+local function getPingText()
+	local ok, result = pcall(function()
+		local stats = game:GetService("Stats")
+		local network = stats:FindFirstChild("Network")
+		local serverStats = network and network:FindFirstChild("ServerStatsItem")
+		local dataPing = serverStats and serverStats:FindFirstChild("Data Ping")
+		return dataPing and dataPing:GetValueString() or "n/a"
+	end)
+	local ping = ok and tonumber(tostring(result):match("[%d%.]+"))
+	return ping and string.format("%d ms", math.floor(ping + 0.5)) or "n/a"
+end
+
+local function applyTheme(library, colors, themeName)
+	for key, color in pairs(colors) do
+		library[key] = color
+		local option = aztup_options["Wiggins_" .. key]
+		if option then
+			option:SetValueRGB(color)
+		end
+	end
+	library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
+	library:UpdateColorsUsingRegistry()
+	local gradientEnabled = library.WindowOutlineGradientEnabled
+	library:SetWindowOutlineGradient(
+		gradientEnabled,
+		library.AccentColor,
+		library.AccentColorDark,
+		library.WindowOutlineGradientDuration
+	)
+	library:SetThemeStyle(themeName)
+end
+
+local function applySavedTheme(library, snapshot, defaultTheme)
+	if type(defaultTheme) == "string" and themes[defaultTheme] then
+		for key, color in pairs(themes[defaultTheme]) do
+			library[key] = color
+		end
+		library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
+		library:UpdateColorsUsingRegistry()
+		library:SetThemeStyle(defaultTheme)
+		return defaultTheme
+	end
+
+	local options = snapshot and snapshot.options
+	if type(options) ~= "table" then
+		local fallbackTheme = "Cherry Blossom"
+		for key, color in pairs(themes[fallbackTheme]) do
+			library[key] = color
+		end
+		library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
+		library:UpdateColorsUsingRegistry()
+		library:SetThemeStyle(fallbackTheme)
+		return fallbackTheme
+	end
+
+	local themeOption = options.Wiggins_Theme
+	local themeName = themeOption and themeOption.value
+	if type(themeName) == "string" and themes[themeName] then
+		for key, color in pairs(themes[themeName]) do
+			library[key] = color
+		end
+	else
+		themeName = "Cherry Blossom"
+		for key, color in pairs(themes[themeName]) do
+			library[key] = color
+		end
+	end
+
+	for _, key in ipairs({ "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }) do
+		local colorOption = options["Wiggins_" .. key]
+		local colorValue = colorOption and colorOption.value
+		if colorOption and colorOption.type == "ColorPicker" and type(colorValue) == "table" and type(colorValue.hex) == "string" then
+			library[key] = Color3.fromHex(colorValue.hex)
+		end
+	end
+
+	library.AccentColorDark = library:GetDarkerColor(library.AccentColor)
+	library:UpdateColorsUsingRegistry()
+	library:SetThemeStyle(themeName)
+	return themeName
+end
+
+local function applyThemeByName(library, name)
+	local colors = themes[name]
+	if not colors then
+		return false
+	end
+	applyTheme(library, colors, name)
+	return true
+end
+
+local function setupSettings(tab, context)
+	local outlineGradientEnabled = true
+	local outlineGradientDuration = 5
+	local function updateOutlineGradient()
+		context.Library.WindowOutlineGradientEnabled = outlineGradientEnabled
+		context.Library.WindowOutlineGradientDuration = outlineGradientDuration
+		context.Library:SetWindowOutlineGradient(
+			outlineGradientEnabled,
+			context.Library.AccentColor,
+			context.Library.AccentColorDark,
+			outlineGradientDuration
+		)
+		if context.Library.VisualsController then
+			context.Library.VisualsController:SetGradient(outlineGradientEnabled, outlineGradientDuration)
+		end
+	end
+	updateOutlineGradient()
+
+	local themesGroup = tab:AddLeftGroupbox("Themes")
+	local themeNames = {}
+	local defaultTheme = context.StartupTheme
+	if not defaultTheme then
+		defaultTheme = "Cherry Blossom"
+	end
+	for name in pairs(themes) do
+		table.insert(themeNames, name)
+	end
+	table.sort(themeNames)
+	themesGroup:AddDropdown("Wiggins_Theme", {
+		Text = "Theme list",
+		Values = themeNames,
+		Default = defaultTheme,
+		Searchable = true,
+		Callback = function(name)
+			if themes[name] then
+				outlineGradientEnabled = true
+				applyTheme(context.Library, themes[name], name)
+				updateOutlineGradient()
+			end
+		end,
+	})
+	themesGroup:AddButton("Set theme as default", function()
+		local themeName = aztup_options.Wiggins_Theme.Value
+		if not themeName then
+			context.SetStatus("select a theme first")
+			return
+		end
+		local ok, err = context.Config:SetDefaultTheme(themeName)
+		context.SetStatus(ok and ("default theme: " .. themeName) or err)
+	end)
+	themesGroup:AddInput("Wiggins_CustomThemeName", {
+		Text = "Custom theme name",
+		Default = "My theme",
+		Finished = true,
+	})
+	themesGroup:AddButton("Save custom theme", function()
+		local name = aztup_options.Wiggins_CustomThemeName.Value
+		if name == "" then
+			context.SetStatus("enter a theme name")
+			return
+		end
+		local colors = {}
+		for _, key in ipairs({ "FontColor", "MainColor", "AccentColor", "BackgroundColor", "OutlineColor" }) do
+			colors[key] = context.Library[key]
+		end
+		customThemes[name] = colors
+		context.SetStatus("saved theme " .. name)
+	end)
+	themesGroup:AddDropdown("Wiggins_CustomThemeList", {
+		Text = "Custom themes",
+		Values = {},
+		AllowNull = true,
+		Searchable = true,
+	})
+	themesGroup:AddButton("Refresh custom themes", function()
+		local names = {}
+		for name in pairs(customThemes) do
+			table.insert(names, name)
+		end
+		table.sort(names)
+		aztup_options.Wiggins_CustomThemeList:SetValues(names)
+		context.SetStatus("custom themes refreshed")
+	end)
+	themesGroup:AddButton("Load custom theme", function()
+		local name = aztup_options.Wiggins_CustomThemeList.Value
+		if customThemes[name] then
+			applyTheme(context.Library, customThemes[name])
+			context.SetStatus("loaded theme " .. name)
+		end
+	end)
+	themesGroup:AddDivider()
+	for _, name in ipairs({ "BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor" }) do
+		local title = name:gsub("(%l)(%u)", "%1 %2")
+		themesGroup:AddLabel(title):AddColorPicker("Wiggins_" .. name, {
+			Default = context.Library[name],
+			Title = title,
+			Callback = function(color)
+				context.Library[name] = color
+				context.Library.AccentColorDark = context.Library:GetDarkerColor(context.Library.AccentColor)
+				context.Library:UpdateColorsUsingRegistry()
+				updateOutlineGradient()
+			end,
+		})
+	end
+
+	local interface = tab:AddLeftGroupbox("Interface")
+	interface:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {
+		Default = "RightAlt",
+		NoUI = true,
+		Text = "Menu keybind",
+	})
+	context.Library.ToggleKeybind = aztup_options.MenuKeybind
+	interface:AddSlider("Wiggins_UIScale", {
+		Text = "UI Scale",
+		Default = 100,
+		Min = 50,
+		Max = 150,
+		Rounding = 0,
+		Suffix = "%",
+		Callback = function(value)
+			context.Library:SetUIScale(value / 100)
+		end,
+	})
+	local customTitleColorEnabled = false
+	local titleColor = context.Library.FontColor
+	interface:AddLabel("Script title color"):AddColorPicker("YSL_WindowTitleColor", {
+		Default = titleColor,
+		Title = "Script title color",
+		Callback = function(color)
+			titleColor = color
+			if customTitleColorEnabled then
+				context.Library:SetWindowTitleColor(titleColor)
+			end
+		end,
+	})
+	interface:AddToggle("YSL_UseCustomTitleColor", {
+		Text = "Use custom title color",
+		Tooltip = "When off, the title follows the theme and animated gradient.",
+		Default = false,
+		Callback = function(enabled)
+			customTitleColorEnabled = enabled
+			context.Library:SetWindowTitleColor(enabled and titleColor or nil)
+		end,
+	})
+	interface:AddInput("YSL_WindowTitle", {
+		Text = "Script name",
+		Default = "YSL METHOD",
+		MaxLength = 24,
+		Finished = true,
+		Callback = function(value)
+			value = string.gsub(value, "^%s*(.-)%s*$", "%1")
+			if value ~= "" then
+				local title, accent = value:match("^(%S+)%s*(.-)$")
+				context.Window:SetWindowTitle(title or value, accent or "")
+			end
+		end,
+	})
+	interface:AddDropdown("YSL_WindowTitleFont", {
+		Text = "Interface font",
+		Tooltip = "Change the font used by all script UI text.",
+		Values = titleFontNames,
+		Default = context.Library.UIFontName or "Gotham",
+		Searchable = true,
+		Callback = function(fontName)
+			context.Library:SetUIFont(fontName)
+		end,
+	})
+	local windowCornerRadius = 8
+	local windowCornerRadiusSlider = interface:AddSlider("Wiggins_OuterWindowRadius", {
+		Text = "Outer window radius",
+		Tooltip = "Set the radius of the window's outside corners. Set to zero for square corners.",
+		Default = windowCornerRadius,
+		Min = 0,
+		Max = 16,
+		Rounding = 0,
+		Suffix = " px",
+		Disabled = true,
+		Callback = function(value)
+			windowCornerRadius = value
+			local cornerToggle = aztup_toggles.Wiggins_RoundOuterWindow
+			if cornerToggle and cornerToggle.Value then
+				context.Library:SetWindowCornerRadius(windowCornerRadius)
+			end
+		end,
+	})
+	interface:AddToggle("Wiggins_RoundOuterWindow", {
+		Text = "Round outer window",
+		Tooltip = "Off restores the current square window outline.",
+		Default = false,
+		Callback = function(enabled)
+			windowCornerRadiusSlider:SetDisabled(not enabled)
+			context.Library:SetWindowCornerRadius(enabled and windowCornerRadius or nil)
+		end,
+	})
+
+	local configuration = tab:AddRightGroupbox("Configuration")
+	configuration:AddLabel("Profiles for " .. tostring(context.Config:GetGameContext() or "no game selected"))
+	configuration:AddLabel("Configs are saved locally when file APIs are available.")
+	configuration:AddInput("Wiggins_ConfigName", {
+		Text = "Config name",
+		Default = "default",
+		Finished = false,
+	})
+	configuration:AddButton("Create / overwrite", function()
+		local name = aztup_options.Wiggins_ConfigName.Value
+		local ok, err = context.Config:Save(name)
+		if ok then
+			aztup_options.Wiggins_ConfigList:SetValues(context.Config:List())
+			aztup_options.Wiggins_ConfigList:SetValue(name)
+		end
+		context.SetStatus(ok and ("saved " .. name) or err)
+	end)
+	configuration:AddDropdown("Wiggins_ConfigList", {
+		Text = "Config list",
+		Values = context.Config:List(),
+		AllowNull = true,
+		Searchable = true,
+	})
+	configuration:AddButton("Load config", function()
+		local name = aztup_options.Wiggins_ConfigList.Value
+		local ok, err = context.Config:Load(name)
+		context.SetStatus(ok and ("loaded " .. tostring(name)) or err)
+	end)
+	configuration:AddButton("Overwrite config", function()
+		local name = aztup_options.Wiggins_ConfigList.Value
+		local ok, err = context.Config:Save(name)
+		context.SetStatus(ok and ("overwrote " .. tostring(name)) or err)
+	end)
+	configuration:AddButton("Refresh config list", function()
+		aztup_options.Wiggins_ConfigList:SetValues(context.Config:List())
+		context.SetStatus("config list refreshed")
+	end)
+	local autoloadStatus = configuration:AddLabel("Autoload config: " .. tostring(context.Config:GetAutoLoadName() or "off"))
+	configuration:AddButton("Set selected as autoload", function()
+		local name = aztup_options.Wiggins_ConfigList.Value
+		local ok, err = context.Config:SetAutoLoad(name)
+		if ok then
+			autoloadStatus:SetText("Autoload config: " .. name)
+		end
+		context.SetStatus(ok and ("autoload config: " .. name) or err)
+	end)
+	configuration:AddButton("Clear autoload config", function()
+		local ok, err = context.Config:SetAutoLoad(nil)
+		if ok then
+			autoloadStatus:SetText("Autoload config: off")
+		end
+		context.SetStatus(ok and "autoload config cleared" or err)
+	end)
+	configuration:AddButton("Delete config", function()
+		local name = aztup_options.Wiggins_ConfigList.Value
+		local ok = context.Config:Delete(name)
+		aztup_options.Wiggins_ConfigList:SetValues(context.Config:List())
+		if ok and context.Config:GetAutoLoadName() then
+			autoloadStatus:SetText("Autoload config: " .. context.Config:GetAutoLoadName())
+		elseif ok then
+			autoloadStatus:SetText("Autoload config: off")
+		end
+		context.SetStatus(ok and ("deleted " .. tostring(name)) or "config not found")
+	end)
+
+	local other = tab:AddRightGroupbox("Other")
+	local originalFpsCap
+	local originalFpsCapKnown = false
+	local fpsCapEnabled = false
+	local function restoreFpsCap()
+		if not fpsCapEnabled then
+			return
+		end
+		fpsCapEnabled = false
+		if type(setfpscap) ~= "function" then
+			warn("[YSL Method] FPS cap API is unavailable; the original cap could not be restored")
+			originalFpsCap = nil
+			originalFpsCapKnown = false
+			return
+		end
+		local restored, restoreError = pcall(setfpscap, originalFpsCap or 60)
+		if not restored then
+			warn("[YSL Method] Could not restore FPS cap: " .. tostring(restoreError))
+		end
+		originalFpsCap = nil
+		originalFpsCapKnown = false
+	end
+	local fpsToggle
+	fpsToggle = other:AddToggle("YSL_UncapFPS", {
+		Text = "Uncap FPS",
+		Tooltip = "Removes the client frame-rate cap. Restores the previous cap when getfpscap is available; otherwise restores 60 FPS.",
+		Default = false,
+		Callback = function(enabled)
+			if enabled then
+				if type(setfpscap) ~= "function" then
+					context.SetStatus("Uncap FPS requires executor setfpscap support")
+					task.defer(function()
+						if fpsToggle then
+							fpsToggle:SetValue(false)
+						end
+					end)
+					return
+				end
+				originalFpsCap = 60
+				originalFpsCapKnown = false
+				if type(getfpscap) == "function" then
+					local readSuccess, cap = pcall(getfpscap)
+					if readSuccess and type(cap) == "number" and cap >= 0 then
+						originalFpsCap = cap
+						originalFpsCapKnown = true
+					end
+				end
+				local changed, changeError = pcall(setfpscap, 0)
+				if not changed then
+					warn("[YSL Method] Could not uncap FPS: " .. tostring(changeError))
+					context.SetStatus("Could not uncap FPS")
+					task.defer(function()
+						if fpsToggle then
+							fpsToggle:SetValue(false)
+						end
+					end)
+					return
+				end
+				fpsCapEnabled = true
+				context.SetStatus(originalFpsCapKnown and "FPS cap removed" or "FPS cap removed; restoring to 60 FPS")
+			else
+				local wasEnabled = fpsCapEnabled
+				restoreFpsCap()
+				if wasEnabled then
+					context.SetStatus("FPS cap restored")
+				end
+			end
+		end,
+	})
+	context.Library:OnUnload(restoreFpsCap)
+
+	local honeyCard = context.Library:Create('Frame', {
+		Position = UDim2.new(1, -264, 1, -226);
+		Size = UDim2.fromOffset(250, 190);
+		BackgroundColor3 = context.Library.AccentColor;
+		BorderSizePixel = 1;
+		Visible = false;
+		ZIndex = 300;
+		Parent = context.Library.ScreenGui;
+	})
+	context.Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 2);
+		Parent = honeyCard;
+	})
+	context.Library:AddUIScale(honeyCard)
+	context.Library:AddToRegistry(honeyCard, {
+		BackgroundColor3 = 'AccentColor';
+	}, true)
+
+	local honeyInner = context.Library:Create('Frame', {
+		Position = UDim2.fromOffset(1, 1);
+		Size = UDim2.new(1, -2, 1, -2);
+		BackgroundColor3 = context.Library.MainColor;
+		BorderSizePixel = 0;
+		ZIndex = 301;
+		Parent = honeyCard;
+	})
+	context.Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 1);
+		Parent = honeyInner;
+	})
+	context.Library:AddToRegistry(honeyInner, {
+		BackgroundColor3 = 'MainColor';
+	}, true)
+
+	local honeyHeader = context.Library:Create('Frame', {
+		Size = UDim2.new(1, 0, 0, 30);
+		BackgroundColor3 = context.Library.BackgroundColor;
+		BorderSizePixel = 0;
+		ZIndex = 302;
+		Parent = honeyInner;
+	})
+	context.Library:AddToRegistry(honeyHeader, {
+		BackgroundColor3 = 'BackgroundColor';
+	}, true)
+
+	local honeyTitle = context.Library:CreateLabel({
+		Position = UDim2.fromOffset(10, 3);
+		Size = UDim2.new(0.65, 0, 0, 16);
+		Text = 'HONEY PER HOUR';
+		TextSize = 12;
+		TextXAlignment = Enum.TextXAlignment.Left;
+		TextYAlignment = Enum.TextYAlignment.Center;
+		ZIndex = 303;
+		Parent = honeyHeader;
+	}, true)
+	context.Library:AddToRegistry(honeyTitle, { TextColor3 = 'FontColor' }, true)
+
+	local honeySession = context.Library:CreateLabelNoStroke({
+		Position = UDim2.new(0.65, 0, 0, 3);
+		Size = UDim2.new(0.35, -8, 0, 16);
+		Text = 'SESSION 00:00';
+		TextSize = 10;
+		TextXAlignment = Enum.TextXAlignment.Right;
+		TextYAlignment = Enum.TextYAlignment.Center;
+		ZIndex = 303;
+		Parent = honeyHeader;
+	}, true)
+	context.Library:AddToRegistry(honeySession, { TextColor3 = 'FontColor' }, true)
+
+	local honeyRate = context.Library:CreateLabel({
+		Position = UDim2.fromOffset(10, 34);
+		Size = UDim2.new(0.62, 0, 0, 28);
+		Text = '0 / HR';
+		TextSize = 22;
+		TextXAlignment = Enum.TextXAlignment.Left;
+		TextYAlignment = Enum.TextYAlignment.Center;
+		ZIndex = 303;
+		Parent = honeyInner;
+	}, true)
+	context.Library:AddToRegistry(honeyRate, { TextColor3 = 'FontColor' }, true)
+
+	local honeyTotal = context.Library:CreateLabelNoStroke({
+		Position = UDim2.new(0.62, 0, 0, 37);
+		Size = UDim2.new(0.38, -10, 0, 22);
+		Text = 'TOTAL 0';
+		TextSize = 11;
+		TextXAlignment = Enum.TextXAlignment.Right;
+		TextYAlignment = Enum.TextYAlignment.Center;
+		ZIndex = 303;
+		Parent = honeyInner;
+	}, true)
+	context.Library:AddToRegistry(honeyTotal, { TextColor3 = 'FontColor' }, true)
+
+	local honeyGraph = context.Library:Create('Frame', {
+		Position = UDim2.fromOffset(10, 70);
+		Size = UDim2.new(1, -20, 0, 82);
+		BackgroundColor3 = context.Library.BackgroundColor;
+		BorderColor3 = context.Library.OutlineColor;
+		BorderSizePixel = 1;
+		ClipsDescendants = true;
+		ZIndex = 302;
+		Parent = honeyInner;
+	})
+	context.Library:Create('UICorner', {
+		CornerRadius = UDim.new(0, 1);
+		Parent = honeyGraph;
+	})
+	context.Library:AddToRegistry(honeyGraph, {
+		BackgroundColor3 = 'BackgroundColor';
+		BorderColor3 = 'OutlineColor';
+	}, true)
+
+	local honeyGrid = {}
+	for index = 1, 3 do
+		local line = context.Library:Create('Frame', {
+			Position = UDim2.new(0, 0, index / 4, 0);
+			Size = UDim2.new(1, 0, 0, 1);
+			BackgroundColor3 = context.Library.OutlineColor;
+			BackgroundTransparency = 0.45;
+			BorderSizePixel = 0;
+			ZIndex = 303;
+			Parent = honeyGraph;
+		})
+		context.Library:AddToRegistry(line, {
+			BackgroundColor3 = 'OutlineColor';
+		}, true)
+		table.insert(honeyGrid, line)
+	end
+
+	local honeyPlot = context.Library:Create('Frame', {
+		Position = UDim2.fromOffset(4, 4);
+		Size = UDim2.new(1, -8, 1, -8);
+		BackgroundTransparency = 1;
+		ZIndex = 304;
+		Parent = honeyGraph;
+	})
+	local honeyPoints = {}
+	local honeySegments = {}
+	for index = 1, 30 do
+		local point = context.Library:Create('Frame', {
+			AnchorPoint = Vector2.new(0.5, 0.5);
+			Size = UDim2.fromOffset(3, 3);
+			BackgroundColor3 = context.Library.FontColor;
+			BorderSizePixel = 0;
+			ZIndex = 306;
+			Parent = honeyPlot;
+		})
+		context.Library:AddToRegistry(point, { BackgroundColor3 = 'FontColor' }, true)
+		table.insert(honeyPoints, point)
+		if index > 1 then
+			local segment = context.Library:Create('Frame', {
+				AnchorPoint = Vector2.new(0.5, 0.5);
+				BackgroundColor3 = context.Library.AccentColor;
+				BorderSizePixel = 0;
+				ZIndex = 305;
+				Parent = honeyPlot;
+			})
+			context.Library:AddToRegistry(segment, { BackgroundColor3 = 'AccentColor' }, true)
+			table.insert(honeySegments, segment)
+		end
+	end
+
+	local function formatHoney(value)
+		value = math.max(0, tonumber(value) or 0)
+		if value >= 1000000000000000 then
+			return string.format('%.2fQa', value / 1000000000000000)
+		elseif value >= 1000000000000 then
+			return string.format('%.2fT', value / 1000000000000)
+		elseif value >= 1000000000 then
+			return string.format('%.2fB', value / 1000000000)
+		elseif value >= 1000000 then
+			return string.format('%.2fM', value / 1000000)
+		elseif value >= 1000 then
+			return string.format('%.1fK', value / 1000)
+		end
+		return string.format('%.0f', value)
+	end
+
+	local function updateHoneyGraph(values)
+		local minimum = math.huge
+		local maximum = -math.huge
+		for _, value in ipairs(values) do
+			minimum = math.min(minimum, value)
+			maximum = math.max(maximum, value)
+		end
+		local range = math.max(1, maximum - minimum)
+		for index, point in ipairs(honeyPoints) do
+			local value = values[index] or values[#values] or 0
+			local x = (#honeyPoints == 1) and 0.5 or (index - 1) / (#honeyPoints - 1)
+			local y = 0.9 - ((value - minimum) / range) * 0.8
+			point.Position = UDim2.new(x, 0, y, 0)
+			point.Visible = #values > 1
+			if index > 1 then
+				local previousValue = values[index - 1] or value
+				local previousX = (index - 2) / (#honeyPoints - 1)
+				local previousY = 0.9 - ((previousValue - minimum) / range) * 0.8
+				local dx = (x - previousX) * honeyPlot.AbsoluteSize.X
+				local dy = (y - previousY) * honeyPlot.AbsoluteSize.Y
+				local length = math.sqrt(dx * dx + dy * dy)
+				local segment = honeySegments[index - 1]
+				segment.Position = UDim2.new((x + previousX) / 2, 0, (y + previousY) / 2, 0)
+				segment.Size = UDim2.fromOffset(length, 2)
+				segment.Rotation = math.deg(math.atan2(dy, dx))
+				segment.Visible = #values > 1
+			end
+		end
+	end
+
+	context.Library:AddToRegistry(honeySession, { TextColor3 = 'FontColor' }, true)
+	context.Library:MakeDraggable(honeyCard, 30)
+	context.Library.HoneyPerHourCard = honeyCard
+
+	local enabledKeybinds = other:AddToggle("OnlyShowEnabledKeybinds", {
+		Text = "Only Show Enabled Keybinds",
+		Default = false,
+	})
+	enabledKeybinds:OnChanged(function()
+		for _, option in pairs(aztup_options) do
+			if option.Type == "KeyPicker" and option.Update then
+				option:Update()
+			end
+		end
+	end)
+	other:AddToggle("Watermark", {
+		Text = "Watermark",
+		Default = false,
+		Callback = function(enabled)
+			watermarkGeneration += 1
+			local generation = watermarkGeneration
+			if watermarkRenderConnection then
+				watermarkRenderConnection:Disconnect()
+				watermarkRenderConnection = nil
+			end
+			context.Library:SetWatermarkVisibility(enabled)
+			if enabled then
+				task.spawn(function()
+					local elapsed = 0
+					local frames = 0
+					local fps = 0
+					local renderConnection = RunService.RenderStepped:Connect(function(deltaTime)
+						frames += 1
+						elapsed += deltaTime
+						if elapsed >= 1 then
+							fps = math.floor(frames / elapsed + 0.5)
+							frames = 0
+							elapsed = 0
+						end
+					end)
+					watermarkRenderConnection = renderConnection
+					while watermarkGeneration == generation and context.Library.ScreenGui.Parent do
+						local player = Players.LocalPlayer
+						local ping = getPingText()
+						local plainText = string.format("YSL METHOD  |  %s  |  %d FPS  |  %s", player.Name, fps, ping)
+						context.Library:SetWatermark(plainText, plainText, {
+							Brand = "YSL METHOD",
+							Player = player.Name,
+							FPS = string.format("%d FPS", fps),
+							Ping = ping,
+						})
+						task.wait(1)
+					end
+					renderConnection:Disconnect()
+					if watermarkRenderConnection == renderConnection then
+						watermarkRenderConnection = nil
+					end
+				end)
+			end
+		end,
+	})
+	other:AddToggle("Console", {
+		Text = "Console",
+		Default = false,
+		Callback = function(enabled)
+			context.Library:SetInfoLoggerVisibility(enabled)
+		end,
+	})
+	other:AddToggle("KeybindShower", {
+		Text = "Show Keybinds",
+		Default = false,
+		Callback = function(enabled)
+			context.Library:SetKeybindVisibility(enabled)
+		end,
+	})
+	other:AddSlider("YSL_HudTransparency", {
+		Text = "HUD background transparency",
+		Tooltip = "Adjusts the transparency of the watermark, hotkeys, and ESP preview panels.",
+		Default = 18,
+		Min = 0,
+		Max = 80,
+		Rounding = 0,
+		Suffix = "%",
+		Callback = function(value)
+			context.Library:SetHudTransparency(value / 100)
+		end,
+	})
+	context.Library:SetHudTransparency(0.18)
+	if context.GameName == "Bee Swarm Remastered" then
+		other:AddToggle("HoneyPerHour", {
+			Text = "Honey per hour",
+			Default = false,
+			Callback = function(enabled)
+				honeyPerHourGeneration += 1
+				local generation = honeyPerHourGeneration
+				honeyCard.Visible = enabled
+				if not enabled then
+					return
+				end
+				task.spawn(function()
+					local samples = {}
+					local startedAt = os.clock()
+					local lastHoney
+					while honeyPerHourGeneration == generation and context.Library.ScreenGui.Parent do
+						local player = Players.LocalPlayer
+						local coreStats = player and player:FindFirstChild("CoreStats")
+						local honeyObject = coreStats and coreStats:FindFirstChild("Honey")
+						local honey = honeyObject and tonumber(honeyObject.Value)
+						if honey then
+							lastHoney = lastHoney or honey
+							if honey < lastHoney then
+								samples = {}
+							end
+							lastHoney = honey
+							table.insert(samples, { time = os.clock(), value = honey })
+							while #samples > 1 and os.clock() - samples[1].time > 60 do
+								table.remove(samples, 1)
+							end
+							local first = samples[1]
+							local duration = math.max(1, os.clock() - first.time)
+							local rate = (honey - first.value) / duration * 3600
+							honeyRate.Text = formatHoney(rate) .. ' / HR'
+							honeyTotal.Text = 'TOTAL ' .. formatHoney(honey)
+							local sessionSeconds = math.floor(os.clock() - startedAt)
+							honeySession.Text = string.format(
+								'SESSION %02d:%02d',
+								math.floor(sessionSeconds / 60),
+								sessionSeconds % 60
+							)
+							local values = {}
+							for _, sample in ipairs(samples) do
+								table.insert(values, sample.value)
+							end
+							while #values < #honeyPoints do
+								table.insert(values, 1, values[1] or honey)
+							end
+							if #values > #honeyPoints then
+								local trimmed = {}
+								for index = #values - #honeyPoints + 1, #values do
+									table.insert(trimmed, values[index])
+								end
+								values = trimmed
+							end
+							updateHoneyGraph(values)
+						end
+						task.wait(1)
+					end
+				end)
+			end,
+		})
+	end
+
+	local outline = tab:AddRightGroupbox("Window Outline")
+	outline:AddToggle("Wiggins_AnimatedOutline", {
+		Text = "Animated Gradient",
+		Default = outlineGradientEnabled,
+		Callback = function(enabled)
+			outlineGradientEnabled = enabled
+			updateOutlineGradient()
+		end,
+	})
+	outline:AddSlider("Wiggins_OutlineGradientDuration", {
+		Text = "Gradient cycle time",
+		Default = outlineGradientDuration,
+		Min = 1,
+		Max = 12,
+		Rounding = 0,
+		Suffix = "s",
+		Callback = function(duration)
+			outlineGradientDuration = duration
+			updateOutlineGradient()
+		end,
+	})
+	local management = tab:AddRightGroupbox("YSL Method")
+	management:AddButton("Forget remembered game", function()
+		local success, err = context.Config:SetSelectedGame(context.PlaceId, nil)
+		if success then
+			context.SetStatus("Game picker will appear next time you run YSL Method")
+		else
+			warn("[YSL Method] Could not forget remembered game: " .. tostring(err))
+			context.SetStatus("Could not save game selection change")
+		end
+	end, true)
+	management:AddButton("Unload hub", function()
+		context.Library:Unload()
+	end, true)
+end
+
+return {
+	Setup = setupSettings,
+	ApplySavedTheme = applySavedTheme,
+	ApplyTheme = applyTheme,
+	ApplyThemeByName = applyThemeByName,
+}
+	end,
+	["@src/config"] = function()
+local ConfigStore = {}
+ConfigStore.__index = ConfigStore
+local HttpService = game:GetService("HttpService")
+local CONFIG_DIRECTORY = "WigginsHub"
+local CONFIG_PATH = CONFIG_DIRECTORY .. "/configs.json"
+
+local function copy(value, ancestors)
+	local valueType = typeof(value)
+	if valueType == "Instance" then
+		return value.Name, true
+	elseif valueType == "EnumItem" then
+		return value.Name, true
+	elseif type(value) ~= "table" then
+		if value == nil or valueType == "boolean" or valueType == "number" or valueType == "string" then
+			return value, false
+		end
+		return nil, true
+	end
+	ancestors = ancestors or {}
+	if ancestors[value] then
+		return nil, true
+	end
+	ancestors[value] = true
+	local result = {}
+	local changed = false
+	for key, item in pairs(value) do
+		local keyType = typeof(key)
+		if keyType ~= "string" and keyType ~= "number" then
+			changed = true
+		else
+			local copied, itemChanged = copy(item, ancestors)
+			if copied ~= nil then
+				result[key] = copied
+			elseif item ~= nil then
+				changed = true
+			end
+			changed = changed or itemChanged
+		end
+	end
+	ancestors[value] = nil
+	return result, changed
+end
+
+local function readValue(option)
+	if option.Type == "ColorPicker" then
+		return { hex = option.Value:ToHex(), transparency = option.Transparency }
+	end
+	if option.Type == "KeyPicker" then
+		return { key = option.Value, mode = option.Mode }
+	end
+	return option.Value
+end
+
+local function isConfigSnapshot(value)
+	return type(value) == "table"
+		and (type(value.toggles) == "table" or type(value.options) == "table" or type(value.layout) == "table")
+end
+
+function ConfigStore.new(library)
+	local store = setmetatable({
+		configs = {},
+		autoloadByGame = {},
+		activeGame = nil,
+		legacyConfigs = {},
+		legacyAutoloadName = nil,
+		defaultTheme = nil,
+		selectedGames = {},
+		library = library,
+	}, ConfigStore)
+	if type(readfile) == "function" then
+		local readSuccess, contents = pcall(readfile, CONFIG_PATH)
+		if readSuccess and type(contents) == "string" then
+			local decodeSuccess, data = pcall(HttpService.JSONDecode, HttpService, contents)
+			if decodeSuccess and type(data) == "table" then
+				store.defaultTheme = type(data.defaultTheme) == "string" and data.defaultTheme or nil
+				store.selectedGames = type(data.selectedGames) == "table" and data.selectedGames or {}
+				store.autoloadByGame = type(data.autoloadByGame) == "table" and data.autoloadByGame or {}
+				store.legacyAutoloadName = type(data.autoloadName) == "string" and data.autoloadName or nil
+				if type(data.legacyAutoloadName) == "string" then
+					store.legacyAutoloadName = data.legacyAutoloadName
+				end
+				if type(data.legacyConfigs) == "table" then
+					store.legacyConfigs = data.legacyConfigs
+				end
+				local savedConfigs = type(data.configs) == "table" and data.configs or {}
+				if data.configSchemaVersion == 2 then
+					for gameName, profiles in pairs(savedConfigs) do
+						if type(gameName) == "string" and type(profiles) == "table" then
+							local validProfiles = {}
+							for profileName, snapshot in pairs(profiles) do
+								if type(profileName) == "string" and isConfigSnapshot(snapshot) then
+									validProfiles[profileName] = snapshot
+								end
+							end
+							if next(validProfiles) then
+								store.configs[gameName] = validProfiles
+							end
+						end
+					end
+				else
+					for profileName, snapshot in pairs(savedConfigs) do
+						if type(profileName) == "string" and isConfigSnapshot(snapshot) then
+							store.legacyConfigs[profileName] = snapshot
+						end
+					end
+				end
+				store.activeGame = store.selectedGames[tostring(game.PlaceId)]
+			end
+		end
+	end
+	return store
+end
+
+function ConfigStore:Persist()
+	if type(writefile) ~= "function" then
+		return false, "Executor file APIs are unavailable; configs will only last this session."
+	end
+	if type(makefolder) == "function" then
+		pcall(makefolder, CONFIG_DIRECTORY)
+	end
+	local payload, normalized = copy({
+		configSchemaVersion = 2,
+		configs = self.configs,
+		autoloadByGame = self.autoloadByGame,
+		defaultTheme = self.defaultTheme,
+		selectedGames = self.selectedGames,
+		legacyConfigs = self.legacyConfigs,
+		legacyAutoloadName = self.legacyAutoloadName,
+	})
+	if normalized then
+		warn("[YSL Method] Config data contained unsupported or cyclic values; affected values were omitted from the saved file.")
+	end
+	local encoded, contents = pcall(HttpService.JSONEncode, HttpService, payload)
+	if not encoded then
+		return false, "Could not serialize config data: " .. tostring(contents)
+	end
+	local written, writeError = pcall(writefile, CONFIG_PATH, contents)
+	if not written then
+		return false, tostring(writeError)
+	end
+	return true
+end
+
+function ConfigStore:SetGameContext(gameName)
+	if type(gameName) ~= "string" or gameName == "" then
+		return false, "Select a game before managing configs."
+	end
+	self.activeGame = gameName
+	local migrated = next(self.legacyConfigs) ~= nil or self.legacyAutoloadName ~= nil
+	local gameProfiles = self.configs[gameName]
+	if not gameProfiles then
+		gameProfiles = {}
+		self.configs[gameName] = gameProfiles
+	end
+	for profileName, snapshot in pairs(self.legacyConfigs) do
+		if not gameProfiles[profileName] then
+			gameProfiles[profileName] = snapshot
+		end
+		self.legacyConfigs[profileName] = nil
+	end
+	if self.legacyAutoloadName then
+		if not self.autoloadByGame[gameName] and gameProfiles[self.legacyAutoloadName] then
+			self.autoloadByGame[gameName] = self.legacyAutoloadName
+		end
+		self.legacyAutoloadName = nil
+	end
+	if next(gameProfiles) == nil then
+		self.configs[gameName] = nil
+	end
+	if migrated then
+		return self:Persist()
+	end
+	return true
+end
+
+local function getGameProfiles(store)
+	if not store.activeGame then
+		return nil
+	end
+	return store.configs[store.activeGame]
+end
+
+function ConfigStore:Save(name)
+	local gameProfiles = getGameProfiles(self)
+	if not gameProfiles then
+		if not self.activeGame then
+			return false, "Select a game before saving a config."
+		end
+		gameProfiles = {}
+		self.configs[self.activeGame] = gameProfiles
+	end
+	name = string.gsub(name or "", "^%s*(.-)%s*$", "%1")
+	if name == "" or not string.match(name, "^[%w _%-]+$") then
+		return false, "Use letters, numbers, spaces, _ or - for config names."
+	end
+	local snapshot = { toggles = {}, options = {}, layout = self.library and self.library:GetLayoutSnapshot() or nil }
+	for id, toggle in pairs(aztup_toggles) do
+		if toggle.Type == "Toggle" then
+			snapshot.toggles[id] = toggle.Value
+		end
+	end
+	for id, option in pairs(aztup_options) do
+		if option.Type then
+			local value, normalized = copy(readValue(option))
+			if value ~= nil then
+				snapshot.options[id] = { type = option.Type, value = value }
+			end
+			if normalized then
+				warn(string.format(
+					"[YSL Method] Config option %s contained unsupported or cyclic values; unsupported branches were omitted.",
+					tostring(id)
+				))
+			end
+		end
+	end
+	local safeSnapshot, normalized = copy(snapshot)
+	if normalized then
+		warn("[YSL Method] Config snapshot contained unsupported or cyclic values; affected values were omitted.")
+	end
+	local encoded, encodeError = pcall(HttpService.JSONEncode, HttpService, safeSnapshot)
+	if not encoded then
+		return false, "Could not serialize config snapshot: " .. tostring(encodeError)
+	end
+	local previousSnapshot = gameProfiles[name]
+	gameProfiles[name] = safeSnapshot
+	local success, err = self:Persist()
+	if not success then
+		gameProfiles[name] = previousSnapshot
+		if next(gameProfiles) == nil then
+			self.configs[self.activeGame] = nil
+		end
+	end
+	return success, err
+end
+
+function ConfigStore:Load(name)
+	local gameProfiles = getGameProfiles(self)
+	local snapshot = gameProfiles and gameProfiles[name]
+	if not snapshot then
+		return false, "Config not found."
+	end
+	local loadErrors = {}
+	if self.library then
+		self.library.ConfigLoading = true
+		self.library.ConfigLoadingOption = nil
+		self.library.ConfigLoadErrors = loadErrors
+	end
+	local function apply(label, callback)
+		if self.library then
+			self.library.ConfigLoadingOption = label
+		end
+		local success, err = pcall(callback)
+		if not success then
+			table.insert(loadErrors, string.format("%s: %s", tostring(label), tostring(err)))
+			warn(string.format("[YSL Method] Could not load config value %s: %s", tostring(label), tostring(err)))
+		end
+	end
+	for id, value in pairs(snapshot.toggles or {}) do
+		local toggle = aztup_toggles[id]
+		if toggle then
+			apply(id, function()
+				toggle:SetValue(value)
+			end)
+		end
+	end
+	for id, item in pairs(snapshot.options or {}) do
+		local option = aztup_options[id]
+		if option and type(item) == "table" then
+			apply(id, function()
+				if item.type == "ColorPicker" then
+					assert(type(item.value) == "table" and type(item.value.hex) == "string", "invalid color value")
+					option:SetValueRGB(Color3.fromHex(item.value.hex), item.value.transparency)
+				elseif item.type == "KeyPicker" then
+					assert(type(item.value) == "table", "invalid keybind value")
+					option:SetValue({ item.value.key, item.value.mode })
+				elseif option.SetValue then
+					option:SetValue(item.value)
+				end
+			end)
+		end
+	end
+	if snapshot.layout and self.library and self.library.SetLayoutSnapshot then
+		apply("layout", function()
+			self.library:SetLayoutSnapshot(snapshot.layout)
+		end)
+	end
+	if self.library then
+		self.library.ConfigLoading = false
+		self.library.ConfigLoadingOption = nil
+		self.library.ConfigLoadErrors = nil
+	end
+	if #loadErrors > 0 then
+		return false, string.format(
+			"Loaded config with %d value error(s). See Output for the affected settings.",
+			#loadErrors
+		)
+	end
+	return true
+end
+
+function ConfigStore:Delete(name)
+	local gameProfiles = getGameProfiles(self)
+	if not gameProfiles or not gameProfiles[name] then
+		return false
+	end
+	local previousSnapshot = gameProfiles[name]
+	local previousAutoload = self.activeGame and self.autoloadByGame[self.activeGame]
+	gameProfiles[name] = nil
+	if next(gameProfiles) == nil then
+		self.configs[self.activeGame] = nil
+	end
+	if self.activeGame and self.autoloadByGame[self.activeGame] == name then
+		self.autoloadByGame[self.activeGame] = nil
+	end
+	local success, err = self:Persist()
+	if not success then
+		self.configs[self.activeGame] = gameProfiles
+		gameProfiles[name] = previousSnapshot
+		self.autoloadByGame[self.activeGame] = previousAutoload
+	end
+	return success, err
+end
+
+function ConfigStore:SetAutoLoad(name)
+	local gameProfiles = getGameProfiles(self)
+	if not self.activeGame then
+		return false, "Select a game before setting an autoload config."
+	end
+	if name ~= nil and (not gameProfiles or not gameProfiles[name]) then
+		return false, "Config not found."
+	end
+	local previousName = self.autoloadByGame[self.activeGame]
+	self.autoloadByGame[self.activeGame] = name
+	local success, err = self:Persist()
+	if not success then
+		self.autoloadByGame[self.activeGame] = previousName
+	end
+	return success, err
+end
+
+function ConfigStore:GetAutoLoadName()
+	return self.activeGame and self.autoloadByGame[self.activeGame] or nil
+end
+
+function ConfigStore:GetGameContext()
+	return self.activeGame
+end
+
+function ConfigStore:GetAutoLoadSnapshot()
+	local gameProfiles = getGameProfiles(self)
+	local name = self:GetAutoLoadName()
+	return gameProfiles and name and gameProfiles[name] or nil
+end
+
+function ConfigStore:SetDefaultTheme(name)
+	if type(name) ~= "string" or name == "" then
+		return false, "Select a theme first."
+	end
+	local previousTheme = self.defaultTheme
+	self.defaultTheme = name
+	local success, err = self:Persist()
+	if not success then
+		self.defaultTheme = previousTheme
+	end
+	return success, err
+end
+
+function ConfigStore:GetDefaultTheme()
+	return self.defaultTheme
+end
+
+function ConfigStore:GetSelectedGame(placeId)
+	return self.selectedGames[tostring(placeId)]
+end
+
+function ConfigStore:SetSelectedGame(placeId, name)
+	if name ~= nil and (type(name) ~= "string" or name == "") then
+		return false, "Select a valid game."
+	end
+	local key = tostring(placeId)
+	if name == nil then
+		self.selectedGames[key] = nil
+	else
+		self.selectedGames[key] = name
+	end
+	return self:Persist()
+end
+
+function ConfigStore:LoadAutoLoad()
+	local autoloadName = self:GetAutoLoadName()
+	if not autoloadName then
+		return false, "No autoload config is set."
+	end
+	return self:Load(autoloadName)
+end
+
+function ConfigStore:List()
+	local names = {}
+	for name in pairs(getGameProfiles(self) or {}) do
+		table.insert(names, name)
+	end
+	table.sort(names)
+	return names
+end
+
+function ConfigStore:GetValue(id)
+	local option = aztup_options[id]
+	return option and option.Value
+end
+
+return ConfigStore
+	end,
 }
 
 -- Bundler source. Run the generated root-level example.lua file.
@@ -10974,19 +12440,25 @@ local signal = require("@src/utility/signal")
 loaded_signal = signal.new()
 
 local Library = require("@src/utility/librarys/ui")
-Library.FontColor = Color3.fromHex("ffe9ed")
-Library.MainColor = Color3.fromHex("351c25")
-Library.AccentColor = Color3.fromHex("f0445e")
-Library.BackgroundColor = Color3.fromHex("21131a")
-Library.OutlineColor = Color3.fromHex("6b3443")
-Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor)
+local ConfigStore = require("@src/config")
+local settingsModule = require("@src/ui/tabs/Settings")
+local configStore = ConfigStore.new(Library)
+local contextLoaded, contextError = configStore:SetGameContext("YSL Method Showcase")
+if not contextLoaded then
+	warn("[YSL Method] Could not load showcase settings context: " .. tostring(contextError))
+end
+local startupTheme = settingsModule.ApplySavedTheme(
+	Library,
+	configStore:GetAutoLoadSnapshot(),
+	configStore:GetDefaultTheme()
+)
 local Window = Library:CreateWindow({
 	Title = "ysl method",
 	Center = true,
 	AutoShow = false,
 	MenuFadeTime = 0,
 	TabPadding = 0,
-	Size = UDim2.fromOffset(680, 680),
+	Size = UDim2.fromOffset(560, 680),
 })
 
 local function setStatus(message)
@@ -11120,163 +12592,43 @@ extraControls:AddSlider("Demo_ExtraSlider", {
 	Suffix = "s",
 })
 
-local appearance = layoutTab:AddRightGroupbox("Window and HUD")
-appearance:AddToggle("Demo_AnimatedOutline", {
-	Text = "Animated window outline",
-	Default = true,
-	Callback = function(enabled)
-		Library:SetWindowOutlineGradient(enabled, Library.AccentColor, Library.AccentColorDark, 5)
-	end,
+local funPlaceholders = layoutTab:AddRightGroupbox("Placeholder Features")
+funPlaceholders:AddLabel("Interactive examples only; these do not run game features.", true)
+funPlaceholders:AddToggle("Demo_FunToggle", {
+	Text = "Example toggle",
+	Default = false,
 })
-appearance:AddSlider("Demo_OutlineSpeed", {
-	Text = "Outline cycle time",
-	Default = 5,
-	Min = 2,
-	Max = 12,
-	Rounding = 0,
-	Suffix = "s",
-	Callback = function(duration)
-		Library:SetWindowOutlineGradient(true, Library.AccentColor, Library.AccentColorDark, duration)
-	end,
+funPlaceholders:AddDropdown("Demo_FunMode", {
+	Text = "Example mode",
+	Values = { "Default", "Alternate", "Custom" },
+	Default = "Default",
 })
-appearance:AddButton("Show watermark", function()
-	Library:SetWatermarkVisibility(true)
-	Library:SetWatermark("UI SHOWCASE  |  Roblox", "UI SHOWCASE  |  Roblox")
-end)
-appearance:AddButton("Hide watermark", function()
-	Library:SetWatermarkVisibility(false)
-end)
-appearance:AddButton("Add console message", function()
-	Library:SetInfoLoggerVisibility(true)
-	Library:AddTextToInfoLogger("Showcase console message")
-	Library:UpdateInfoLoggerSize()
-end)
-appearance:AddButton("Show keybind panel", function()
-	Library.KeybindFrame.Visible = true
-end)
-appearance:AddButton("Hide keybind panel", function()
-	Library.KeybindFrame.Visible = false
-end)
-appearance:AddDivider()
-appearance:AddLabel("Use the search box at the top to find controls by name.", true)
+funPlaceholders:AddKeyPicker("Demo_FunKey", {
+	Text = "Example keybind",
+	Default = "G",
+})
 
 local settingsTab = Window:AddTab("Settings")
-local interfaceSettings = settingsTab:AddLeftGroupbox("Interface")
-interfaceSettings:AddLabel("Menu bind"):AddKeyPicker("Demo_MenuKeybind", {
-	Default = "RightAlt",
-	NoUI = true,
-	Text = "Menu keybind",
-})
-Library.ToggleKeybind = aztup_options.Demo_MenuKeybind
-interfaceSettings:AddSlider("Demo_UIScale", {
-	Text = "UI Scale",
-	Default = 100,
-	Min = 70,
-	Max = 130,
-	Rounding = 0,
-	Suffix = "%",
-	Callback = function(value)
-		Library:SetUIScale(value / 100)
-	end,
-})
-interfaceSettings:AddInput("Demo_WindowTitle", {
-	Text = "Window title",
-	Default = "ysl method",
-	MaxLength = 24,
-	Finished = true,
-	Callback = function(value)
-		value = value:gsub("^%s*(.-)%s*$", "%1")
-		if value ~= "" then
-			local title, accent = value:match("^(%S+)%s*(.-)$")
-			Window:SetWindowTitle(title or value, accent or "")
-		end
-	end,
-})
-local cornerRadius = 0
-interfaceSettings:AddSlider("Demo_CornerRadius", {
-	Text = "Window corner radius",
-	Default = cornerRadius,
-	Min = 0,
-	Max = 16,
-	Rounding = 0,
-	Suffix = " px",
-	Callback = function(value)
-		cornerRadius = value
-		Library:SetWindowCornerRadius(value)
-	end,
-})
-
-local themeSettings = settingsTab:AddRightGroupbox("Theme and HUD")
-for _, colorName in ipairs({ "BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor" }) do
-	local label = colorName:gsub("(%l)(%u)", "%1 %2")
-	themeSettings:AddLabel(label):AddColorPicker("Demo_Theme_" .. colorName, {
-		Default = Library[colorName],
-		Title = label,
-		Callback = function(color)
-			Library[colorName] = color
-			Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor)
-			Library:UpdateColorsUsingRegistry()
-			Library:SetWindowOutlineGradient(
-				Library.WindowOutlineGradientEnabled,
-				Library.AccentColor,
-				Library.AccentColorDark,
-				Library.DemoOutlineDuration or 5
-			)
-		end,
-	})
-end
-themeSettings:AddToggle("Demo_SettingsAnimatedOutline", {
-	Text = "Animated outline gradient",
-	Default = true,
-	Callback = function(enabled)
-		Library:SetWindowOutlineGradient(
-			enabled,
-			Library.AccentColor,
-			Library.AccentColorDark,
-			Library.DemoOutlineDuration or 5
-		)
-	end,
-})
-themeSettings:AddSlider("Demo_SettingsOutlineDuration", {
-	Text = "Outline cycle time",
-	Default = 5,
-	Min = 1,
-	Max = 12,
-	Rounding = 0,
-	Suffix = "s",
-	Callback = function(duration)
-		Library.DemoOutlineDuration = duration
-		Library:SetWindowOutlineGradient(
-			Library.WindowOutlineGradientEnabled,
-			Library.AccentColor,
-			Library.AccentColorDark,
-			duration
-		)
-	end,
-})
-themeSettings:AddSlider("Demo_HudTransparency", {
-	Text = "HUD background transparency",
-	Default = 18,
-	Min = 0,
-	Max = 80,
-	Rounding = 0,
-	Suffix = "%",
-	Callback = function(value)
-		Library:SetHudTransparency(value / 100)
-	end,
-})
 
 local visualsSetup = require("@src/ui/tabs/Visuals")
 visualsSetup.Setup(layoutTab, visualsTab, {
 	Library = Library,
 	Window = Window,
 	GameName = "YSL Method Showcase",
+	ShowcaseOnly = true,
+	SetStatus = setStatus,
+}, settingsTab)
+settingsModule.Setup(settingsTab, {
+	Library = Library,
+	Window = Window,
+	Config = configStore,
+	PlaceId = game.PlaceId,
+	GameName = "YSL Method Showcase",
+	StartupTheme = startupTheme,
 	SetStatus = setStatus,
 })
-Library:SetHudTransparency(0.18)
 
 Library:UpdateColorsUsingRegistry()
-Library:SetWindowOutlineGradient(true, Library.AccentColor, Library.AccentColorDark, 5)
 loaded_signal:fire()
 Library:Toggle()
 Library:AddTextToInfoLogger("UI showcase loaded")
