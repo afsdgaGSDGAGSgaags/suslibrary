@@ -1,4 +1,4 @@
-local sourceUrl = "https://raw.githubusercontent.com/afsdgaGSDGAGSgaags/suslibrary/a02d3d8e16504429971ffad3df3989e838827588/YSLUILibrary.lua"
+local sourceUrl = "https://raw.githubusercontent.com/afsdgaGSDGAGSgaags/suslibrary/a924362fbc6fac0aad4840a790c4040efc97bb88/YSLUILibrary.lua"
 
 if type(loadstring) ~= "function" then
 	error("This example requires an environment that supports loadstring.")
