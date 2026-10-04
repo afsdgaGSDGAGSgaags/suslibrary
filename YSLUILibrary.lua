@@ -7536,7 +7536,7 @@ loaded_signal = signal.new()
 
 local Library = require("@src/utility/librarys/ui")
 local Window = Library:CreateWindow({
-	Title = "UI Library Showcase",
+	Title = "ysl method",
 	Center = true,
 	AutoShow = false,
 	MenuFadeTime = 0,
@@ -7550,7 +7550,6 @@ end
 
 local controlsTab = Window:AddTab("Controls")
 local basicControls = controlsTab:AddLeftGroupbox("Basic Controls")
-basicControls:AddLabel("A UI-only example of the library's controls, layout, and theme features.", true)
 basicControls:AddDivider()
 
 basicControls:AddButton({
@@ -7714,6 +7713,113 @@ appearance:AddButton("Hide keybind panel", function()
 end)
 appearance:AddDivider()
 appearance:AddLabel("Use the search box at the top to find controls by name.", true)
+
+local settingsTab = Window:AddTab("Settings")
+local interfaceSettings = settingsTab:AddLeftGroupbox("Interface")
+interfaceSettings:AddLabel("Menu bind"):AddKeyPicker("Demo_MenuKeybind", {
+	Default = "RightAlt",
+	NoUI = true,
+	Text = "Menu keybind",
+})
+Library.ToggleKeybind = aztup_options.Demo_MenuKeybind
+interfaceSettings:AddSlider("Demo_UIScale", {
+	Text = "UI Scale",
+	Default = 100,
+	Min = 70,
+	Max = 130,
+	Rounding = 0,
+	Suffix = "%",
+	Callback = function(value)
+		Library:SetUIScale(value / 100)
+	end,
+})
+interfaceSettings:AddInput("Demo_WindowTitle", {
+	Text = "Window title",
+	Default = "ysl method",
+	MaxLength = 24,
+	Finished = true,
+	Callback = function(value)
+		value = value:gsub("^%s*(.-)%s*$", "%1")
+		if value ~= "" then
+			local title, accent = value:match("^(%S+)%s*(.-)$")
+			Window:SetWindowTitle(title or value, accent or "")
+		end
+	end,
+})
+local cornerRadius = 0
+interfaceSettings:AddSlider("Demo_CornerRadius", {
+	Text = "Window corner radius",
+	Default = cornerRadius,
+	Min = 0,
+	Max = 16,
+	Rounding = 0,
+	Suffix = " px",
+	Callback = function(value)
+		cornerRadius = value
+		Library:SetWindowCornerRadius(value)
+	end,
+})
+
+local themeSettings = settingsTab:AddRightGroupbox("Theme and HUD")
+for _, colorName in ipairs({ "BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor" }) do
+	local label = colorName:gsub("(%l)(%u)", "%1 %2")
+	themeSettings:AddLabel(label):AddColorPicker("Demo_Theme_" .. colorName, {
+		Default = Library[colorName],
+		Title = label,
+		Callback = function(color)
+			Library[colorName] = color
+			Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor)
+			Library:UpdateColorsUsingRegistry()
+			Library:SetWindowOutlineGradient(
+				Library.WindowOutlineGradientEnabled,
+				Library.AccentColor,
+				Library.AccentColorDark,
+				Library.DemoOutlineDuration or 5
+			)
+		end,
+	})
+end
+themeSettings:AddToggle("Demo_SettingsAnimatedOutline", {
+	Text = "Animated outline gradient",
+	Default = true,
+	Callback = function(enabled)
+		Library:SetWindowOutlineGradient(
+			enabled,
+			Library.AccentColor,
+			Library.AccentColorDark,
+			Library.DemoOutlineDuration or 5
+		)
+	end,
+})
+themeSettings:AddSlider("Demo_SettingsOutlineDuration", {
+	Text = "Outline cycle time",
+	Default = 5,
+	Min = 1,
+	Max = 12,
+	Rounding = 0,
+	Suffix = "s",
+	Callback = function(duration)
+		Library.DemoOutlineDuration = duration
+		Library:SetWindowOutlineGradient(
+			Library.WindowOutlineGradientEnabled,
+			Library.AccentColor,
+			Library.AccentColorDark,
+			duration
+		)
+	end,
+})
+themeSettings:AddSlider("Demo_HudTransparency", {
+	Text = "HUD background transparency",
+	Default = 18,
+	Min = 0,
+	Max = 80,
+	Rounding = 0,
+	Suffix = "%",
+	Callback = function(value)
+		Library:SetHudTransparency(value / 100)
+	end,
+})
+Library:SetHudTransparency(0.18)
 
 Library:UpdateColorsUsingRegistry()
 Library:SetWindowOutlineGradient(true, Library.AccentColor, Library.AccentColorDark, 5)
