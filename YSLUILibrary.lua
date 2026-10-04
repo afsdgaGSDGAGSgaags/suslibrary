@@ -1888,12 +1888,14 @@ function Library:CreateWindow(...)
 	WindowAccentLabel.RichText = false;
 	Library.WindowAccentLabel = WindowAccentLabel;
 	local WindowTitleLogo = Library:Create('ImageLabel', {
+		Name = 'WindowTitleLogo';
+		Active = false;
 		BackgroundTransparency = 1;
 		BorderSizePixel = 0;
-		Image = 'rbxassetid://129868188377055';
+		Image = 'rbxthumb://type=Asset&id=129868188377055&w=150&h=150';
 		ScaleType = Enum.ScaleType.Fit;
 		Size = UDim2.fromOffset(16, 16);
-		ZIndex = 4;
+		ZIndex = 5;
 		Parent = WindowTitleContent;
 	})
 	Library.WindowTitleFontName = "GothamBold"
