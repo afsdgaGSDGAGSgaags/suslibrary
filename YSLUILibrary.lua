@@ -112,7 +112,7 @@ aztup_options = {};
 getgenv().aztup_toggles = aztup_toggles;
 getgenv().aztup_options = aztup_options;
 
-local Library = {
+local Library: {[string]: any} = {
 	OnToggledChanged = Instance.new("BindableEvent");
 	ToggleChanged = Instance.new("BindableEvent");
 	Registry = {};
@@ -1609,7 +1609,7 @@ end;
 
 function Library:CreateWindow(...)
 	local Arguments = { ... }
-	local Config = { AnchorPoint = Vector2.zero }
+	local Config: {[string]: any} = { AnchorPoint = Vector2.zero }
 
 	if type(...) == 'table' then
 		Config = ...;
@@ -1641,7 +1641,7 @@ function Library:CreateWindow(...)
 		Config.Position = UDim2.fromScale(0.5, 0.5)
 	end
 
-	local Window = {
+	local Window: {[string]: any} = {
 		Tabs = {};
 		TabOrder = {};
 		SearchEntries = {};
@@ -1887,6 +1887,15 @@ function Library:CreateWindow(...)
 	}, false);
 	WindowAccentLabel.RichText = false;
 	Library.WindowAccentLabel = WindowAccentLabel;
+	local WindowTitleLogo = Library:Create('ImageLabel', {
+		BackgroundTransparency = 1;
+		BorderSizePixel = 0;
+		Image = 'rbxassetid://129868188377055';
+		ScaleType = Enum.ScaleType.Fit;
+		Size = UDim2.fromOffset(16, 16);
+		ZIndex = 4;
+		Parent = WindowTitleContent;
+	})
 	Library.WindowTitleFontName = "GothamBold"
 	Library.UIFontName = "Gotham"
 	function Library:SetUIFont(fontName)
@@ -1959,17 +1968,22 @@ function Library:CreateWindow(...)
 		local gap = accentWidth > 0 and 4 or 0
 		local maximumContentWidth = math.max(1, availableWidth - 24)
 		local totalTextWidth = baseWidth + accentWidth
-		if totalTextWidth + gap > maximumContentWidth and totalTextWidth > 0 then
-			local textWidthBudget = math.max(2, maximumContentWidth - gap)
+		local logoWidth = 16
+		local logoGap = totalTextWidth > 0 and 5 or 0
+		if totalTextWidth + gap + logoGap + logoWidth > maximumContentWidth and totalTextWidth > 0 then
+			local textWidthBudget = math.max(2, maximumContentWidth - gap - logoGap - logoWidth)
 			baseWidth = math.max(1, math.floor(textWidthBudget * baseWidth / totalTextWidth))
 			accentWidth = math.max(1, textWidthBudget - baseWidth)
 		end
 
-		local contentWidth = baseWidth + gap + accentWidth
+		local textWidth = baseWidth + gap + accentWidth
+		local contentWidth = textWidth + logoGap + logoWidth
 		WindowLabel.Position = UDim2.fromOffset(0, 0)
 		WindowLabel.Size = UDim2.fromOffset(baseWidth, 24)
 		WindowAccentLabel.Position = UDim2.fromOffset(baseWidth + gap, 0)
 		WindowAccentLabel.Size = UDim2.fromOffset(accentWidth, 24)
+		WindowTitleLogo.Position = UDim2.fromOffset(textWidth + logoGap, 4)
+		WindowTitleLogo.Size = UDim2.fromOffset(logoWidth, logoWidth)
 		WindowTitleContent.Size = UDim2.fromOffset(contentWidth, 24)
 		WindowTitleContent.Position = UDim2.new(0.5, 0, 0, 0)
 		WindowTitlePlate.Size = UDim2.fromOffset(math.min(availableWidth, contentWidth + 24), 24)
@@ -1991,7 +2005,6 @@ function Library:CreateWindow(...)
 		Size = UDim2.new(0.25, 0, 0, 21);
 
 		FontFace = Library.Font;
-		TextSize = 18;
 		PlaceholderColor3 = Color3.fromRGB(190, 190, 190);
 		PlaceholderText = 'search...';
 		TextSize = WindowLabel.TextSize;
@@ -2261,9 +2274,9 @@ function Library:CreateWindow(...)
 		BackgroundColor3 = Library.BackgroundColor;
 		BorderColor3 = Library.OutlineColor;
 		BorderSizePixel = 0;
-		Position = UDim2.new(0, 0, 0, 40);
+		Position = UDim2.new(0, 0, 0, 24);
 		BackgroundTransparency = 1;
-		Size = UDim2.new(1, 0, 1, -40);
+		Size = UDim2.new(1, 0, 1, -24);
 		ZIndex = 1;
 		Parent = Inner;
 	});
@@ -3289,7 +3302,7 @@ return Library
 return function(Library, context)
 	local Component = {}
 
-	local function processButtonParams(target, ...)
+	local function processButtonParams(target: {[string]: any}, ...)
 		local props = select(1, ...)
 		if type(props) == 'table' then
 			target.Text = props.Text
@@ -3468,7 +3481,7 @@ return function(Library, context)
 	end
 
 	function Component.AddButton(self, ...)
-		local button = {}
+		local button: {[string]: any} = {}
 		processButtonParams(button, ...)
 
 		if self.Objects then
@@ -3496,7 +3509,7 @@ return function(Library, context)
 		end
 
 		function button:AddButton(...)
-			local subButton = {}
+			local subButton: {[string]: any} = {}
 			processButtonParams(subButton, ...)
 
 			self.Outer.Size = UDim2.new(0.5, -2, 0, 20)
@@ -3587,7 +3600,7 @@ return function(Library, context)
 
 		assert(Info.Default, 'AddColorPicker: Missing default value.');
 
-		local ColorPicker = {
+		local ColorPicker: {[string]: any} = {
 			Value = Info.Default;
 			Transparency = Info.Transparency or 0;
 			Type = 'ColorPicker';
@@ -4223,7 +4236,7 @@ return function(Library, context)
 			})
 		end;
 
-		local Dropdown = {
+		local Dropdown: {[string]: any} = {
 			Values = Info.Values;
 			Value = Info.Multi and {};
 			Multi = Info.Multi;
@@ -4525,7 +4538,7 @@ return function(Library, context)
 					end
 				end
 
-				local ButtonState = {}
+				local ButtonState: {[string]: any} = {}
 				Count = Count + 1
 
 				local Button = Library:Create('Frame', {
@@ -5350,7 +5363,7 @@ return function(Library, context)
 	function Component.AddInput(self, Idx, Info)
 		assert(Info.Text, 'AddInput: Missing `Text` string.')
 
-		local Textbox = {
+		local Textbox: {[string]: any} = {
 			Value = Info.Default or '';
 			Numeric = Info.Numeric or false;
 			Finished = Info.Finished or false;
@@ -5539,7 +5552,7 @@ return function(Library, context)
 	local Component = {}
 
 	function Component.AddLabel(self, Text, DoesWrap, RichText)
-		local Label = {}
+		local Label: {[string]: any} = {}
 
 		if self.Objects then
 			table.insert(self.Objects, {
@@ -5833,7 +5846,7 @@ return function(Library, context)
 		assert(Info.Max ~= nil,     'AddSlider: Missing maximum value.')
 		assert(Info.Rounding ~= nil, 'AddSlider: Missing rounding value.')
 
-		local Slider = {
+		local Slider: {[string]: any} = {
 			Value    = Info.Default;
 			Min      = Info.Min;
 			Max      = Info.Max;
@@ -6202,7 +6215,7 @@ return function(Library, context)
 			Max = maxVal;
 		}
 
-		local MinMaxSlider = {
+		local MinMaxSlider: {[string]: any} = {
 			Value = rangeValue;
 			Min = Info.Min;
 			Max = Info.Max;
@@ -6542,7 +6555,7 @@ return function(Library, context)
 			print(self)
 		end;
 		
-		local Toggle = {
+		local Toggle: {[string]: any} = {
 			Value = Info.Default or false;
 			Type = 'Toggle';
 			Flag = Idx,
@@ -6911,7 +6924,7 @@ end
 
 		assert(Info.Default, 'AddKeyPicker: Missing default value.');
 
-		local KeyPicker = {
+		local KeyPicker: {[string]: any} = {
 			Value = Info.Default;
 			Toggled = false;
 			Mode = Info.Mode or 'Toggle'; 
@@ -7439,11 +7452,11 @@ end;
 								end;
 								Text = Text .. '.';
 								DisplayLabel.Text = Text;
-								wait(0.4);
+								task.wait(0.4);
 							end;
 						end)
 					end);
-					wait(0.2);
+					task.wait(0.2);
 					local Event;
 					Event = InputService.InputBegan:Connect(function(Input)
 						local Key;
@@ -8420,7 +8433,7 @@ return function(library)
 			and windowPosition.X - imageSize.X + 100
 			or windowPosition.X + window.AbsoluteSize.X - 100
 		local x = math.clamp(preferredX + (index - 1) * 36, 8, math.max(8, viewportSize.X - imageSize.X - 8))
-		local y = math.clamp(windowPosition.Y - imageSize.Y + 96 + (index - 1) * 30, 8, math.max(8, viewportSize.Y - imageSize.Y - 8))
+		local y = math.clamp(windowPosition.Y - imageSize.Y + 104 + (index - 1) * 30, 8, math.max(8, viewportSize.Y - imageSize.Y - 8))
 		return UDim2.fromOffset(x, y)
 	end
 
@@ -10341,7 +10354,7 @@ local startupTheme = settingsModule.ApplySavedTheme(
 	configStore:GetDefaultTheme() or "Mint"
 )
 local Window = Library:CreateWindow({
-	Title = "ysl method",
+	Title = "ysl luma",
 	Center = true,
 	AutoShow = false,
 	MenuFadeTime = 0,
