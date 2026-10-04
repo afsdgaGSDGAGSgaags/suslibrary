@@ -8234,7 +8234,7 @@ local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 
-local IMAGE = "rbxthumb://type=Asset&id=134597908413024&w=420&h=420"
+local IMAGE = "rbxthumb://type=Asset&id=81182146149930&w=420&h=420"
 
 return function(library)
 	local image = library:Create("ImageLabel", {
@@ -8243,9 +8243,9 @@ return function(library)
 		BorderSizePixel = 0,
 		Image = IMAGE,
 		ScaleType = Enum.ScaleType.Fit,
-		Size = UDim2.fromOffset(200, 230),
+		Size = UDim2.fromOffset(300, 360),
 		Visible = false,
-		ZIndex = 1000,
+		ZIndex = 0,
 		Parent = library.ScreenGui,
 	})
 	library:AddUIScale(image)
@@ -8276,15 +8276,16 @@ return function(library)
 		local previewOnRight = not preview
 			or preview.AbsolutePosition.X >= window.AbsolutePosition.X + window.AbsoluteSize.X / 2
 		local preferredX = previewOnRight
-			and windowPosition.X - imageSize.X - 10
-			or windowPosition.X + window.AbsoluteSize.X + 10
+			and windowPosition.X - imageSize.X + 34
+			or windowPosition.X + window.AbsoluteSize.X - 34
 		local x = math.clamp(preferredX, 8, math.max(8, viewportSize.X - imageSize.X - 8))
 		local y = math.clamp(
-			windowPosition.Y + 58,
+			windowPosition.Y + 76,
 			8,
 			math.max(8, viewportSize.Y - imageSize.Y - 8)
 		)
 
+		image.Rotation = previewOnRight and 5 or -5
 		image.Position = UDim2.fromOffset(x / uiScale, y / uiScale)
 		image.Visible = true
 	end
