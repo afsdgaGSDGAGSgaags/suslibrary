@@ -1,8 +1,8 @@
 # YSL UI Library
 
-This repository contains a standalone UI showcase styled and laid out like YSL Method. It has Main, Visuals, Fun, and Settings tabs. Main, Visuals, and Fun contain interactive placeholders; only the local ESP preview and interface ambience are shown, with no player/game feature actions.
+This repository contains a standalone bundle of the YSL Method interface with game-specific features removed. It has only Main and Settings tabs. Main contains interactive placeholder controls to demonstrate the UI; placeholders do not run game features.
 
-The Settings tab uses YSL Method's settings module, including themes, interface controls, configuration management, watermark, keybind panel, console, HUD transparency, and window outline controls. Screen Effect and Array List are in Settings; Rain is enabled at startup.
+Settings uses YSL Method's settings module, including themes, interface controls, configuration management, watermark, keybind panel, console, HUD transparency, and window outline controls.
 
 ## Files
 
@@ -11,4 +11,4 @@ The Settings tab uses YSL Method's settings module, including themes, interface 
 
 ## Run the example
 
-Execute `RunExample.lua` in a compatible Roblox Luau environment with HTTP and `loadstring` support. To run without downloading, execute `YSLUILibrary.lua` directly. The ESP preview uses a local-character clone and its ESP controls only affect the preview.
+Execute `RunExample.lua` in a compatible Roblox Luau environment with HTTP and `loadstring` support. To run without downloading, execute `YSLUILibrary.lua` directly.
