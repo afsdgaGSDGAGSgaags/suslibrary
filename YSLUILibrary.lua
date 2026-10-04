@@ -8111,7 +8111,7 @@ return function(library)
 		end
 		x = math.clamp(x, 8, math.max(8, viewportSize.X - previewSize.X - 8))
 		local y = math.clamp(
-			windowPosition.Y + 48,
+			windowPosition.Y + 58,
 			8,
 			math.max(8, viewportSize.Y - previewSize.Y - 8)
 		)
