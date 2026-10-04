@@ -1887,61 +1887,19 @@ function Library:CreateWindow(...)
 	}, false);
 	WindowAccentLabel.RichText = false;
 	Library.WindowAccentLabel = WindowAccentLabel;
-	local logoTestScreenGui = Instance.new('ScreenGui');
-	logoTestScreenGui.Name = 'YSLLogoRenderTest';
-	logoTestScreenGui.DisplayOrder = ScreenGui.DisplayOrder + 1000;
-	logoTestScreenGui.IgnoreGuiInset = ScreenGui.IgnoreGuiInset;
-	logoTestScreenGui.ResetOnSpawn = false;
-	logoTestScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-	logoTestScreenGui.Parent = ScreenGui.Parent;
-	Library:OnUnload(function()
-		logoTestScreenGui:Destroy()
-	end)
 	local WindowTitleLogo = Library:Create('ImageLabel', {
 		Name = 'WindowTitleLogo';
 		Active = false;
-		AnchorPoint = Vector2.new(0.5, 0.5);
-		BackgroundColor3 = Color3.fromRGB(32, 38, 52);
-		BackgroundTransparency = 0;
+		BackgroundTransparency = 1;
 		BorderSizePixel = 0;
 		Image = 'rbxthumb://type=Asset&id=129868188377055&w=420&h=420';
 		ImageColor3 = Color3.new(1, 1, 1);
 		ImageTransparency = 0;
 		ScaleType = Enum.ScaleType.Fit;
-		Position = UDim2.fromScale(0.5, 0.5);
-		Size = UDim2.fromOffset(180, 180);
-		ZIndex = 2;
-		Parent = logoTestScreenGui;
+		Size = UDim2.fromOffset(20, 20);
+		ZIndex = 5;
+		Parent = WindowTitleContent;
 	})
-	local logoTestStatus = Instance.new('TextLabel');
-	logoTestStatus.Name = 'LogoRenderStatus';
-	logoTestStatus.AnchorPoint = Vector2.new(0.5, 0);
-	logoTestStatus.BackgroundColor3 = Color3.fromRGB(32, 38, 52);
-	logoTestStatus.BorderSizePixel = 0;
-	logoTestStatus.Font = Enum.Font.GothamBold;
-	logoTestStatus.Position = UDim2.new(0.5, 0, 0.5, 96);
-	logoTestStatus.Size = UDim2.fromOffset(240, 28);
-	logoTestStatus.Text = 'LOGO TEST: LOADING ASSET';
-	logoTestStatus.TextColor3 = Color3.new(1, 1, 1);
-	logoTestStatus.TextSize = 13;
-	logoTestStatus.ZIndex = 2;
-	logoTestStatus.Parent = logoTestScreenGui;
-	task.spawn(function()
-		local success, err = pcall(function()
-			game:GetService('ContentProvider'):PreloadAsync({ WindowTitleLogo })
-		end)
-		if not logoTestScreenGui.Parent then
-			return
-		end
-		if success and WindowTitleLogo.IsLoaded then
-			logoTestStatus.Text = 'LOGO TEST: IMAGE LOADED'
-			logoTestStatus.TextColor3 = Color3.fromRGB(120, 255, 150)
-		else
-			logoTestStatus.Text = 'LOGO TEST: IMAGE FAILED TO LOAD'
-			logoTestStatus.TextColor3 = Color3.fromRGB(255, 120, 120)
-			warn('[YSL Method] Title logo did not load: ' .. tostring(err or 'asset is not loaded'))
-		end
-	end)
 	Library.WindowTitleFontName = "GothamBold"
 	Library.UIFontName = "Gotham"
 	function Library:SetUIFont(fontName)
@@ -2020,11 +1978,28 @@ function Library:CreateWindow(...)
 			accentWidth = math.max(1, textWidthBudget - baseWidth)
 		end
 
-		local contentWidth = baseWidth + gap + accentWidth
+		local textWidth = baseWidth + gap + accentWidth
+		local logoWidth = 20
+		local logoGap = textWidth > 0 and 5 or 0
+		if textWidth + logoGap + logoWidth > maximumContentWidth then
+			local textWidthBudget = math.max(1, maximumContentWidth - logoGap - logoWidth)
+			if baseWidth > 0 and accentWidth > 0 then
+				baseWidth = math.max(1, math.floor(textWidthBudget * baseWidth / textWidth))
+				accentWidth = math.max(1, textWidthBudget - baseWidth - gap)
+			elseif baseWidth > 0 then
+				baseWidth = textWidthBudget
+			else
+				accentWidth = textWidthBudget
+			end
+			textWidth = baseWidth + gap + accentWidth
+		end
+		local contentWidth = textWidth + logoGap + logoWidth
 		WindowLabel.Position = UDim2.fromOffset(0, 0)
 		WindowLabel.Size = UDim2.fromOffset(baseWidth, 24)
 		WindowAccentLabel.Position = UDim2.fromOffset(baseWidth + gap, 0)
 		WindowAccentLabel.Size = UDim2.fromOffset(accentWidth, 24)
+		WindowTitleLogo.Position = UDim2.fromOffset(textWidth + logoGap, 2)
+		WindowTitleLogo.Size = UDim2.fromOffset(logoWidth, logoWidth)
 		WindowTitleContent.Size = UDim2.fromOffset(contentWidth, 24)
 		WindowTitleContent.Position = UDim2.new(0.5, 0, 0, 0)
 		WindowTitlePlate.Size = UDim2.fromOffset(math.min(availableWidth, contentWidth + 24), 24)
