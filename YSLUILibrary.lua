@@ -96,13 +96,15 @@ local getgenv = getgenv or function() return fallbackEnvironment end;
 local uiOpen = false;
 
 for _, previousScreen in ipairs(CoreGui:GetChildren()) do
-	if previousScreen:IsA("ScreenGui") and (previousScreen.Name == "WigginsHub" or previousScreen.Name == "YSLMethod") then
+	if previousScreen:IsA("ScreenGui") and (previousScreen.Name == "WigginsHub"
+		or previousScreen.Name == "YSLMethod" or previousScreen.Name == "YSLMethodSideImages") then
 		previousScreen:Destroy()
 	end
 end
 
 local ScreenGui = Instance.new('ScreenGui');
 ScreenGui.Name = "YSLMethod"
+ScreenGui.DisplayOrder = 1;
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.ResetOnSpawn = false;
 ScreenGui.Parent = CoreGui;
@@ -115,6 +117,8 @@ getgenv().aztup_options = aztup_options;
 local Library: {[string]: any} = {
 	OnToggledChanged = Instance.new("BindableEvent");
 	ToggleChanged = Instance.new("BindableEvent");
+	WindowDraggingChanged = Instance.new("BindableEvent");
+	WindowDragging = false;
 	Registry = {};
 	RegistryMap = {};
 	WindowOuterCorner = nil;
@@ -123,11 +127,11 @@ local Library: {[string]: any} = {
 
 	HudRegistry = {};
 
-	FontColor = Color3.fromHex("d8dee9");
-	MainColor = Color3.fromHex("1b2b34");
-	BackgroundColor = Color3.fromHex("16232a");
-	AccentColor = Color3.fromHex("6699cc");
-	OutlineColor = Color3.fromHex("343d46");
+	FontColor = Color3.fromHex("d7dff2");
+	MainColor = Color3.fromHex("171a2a");
+	BackgroundColor = Color3.fromHex("0c0e18");
+	AccentColor = Color3.fromHex("7896d4");
+	OutlineColor = Color3.fromHex("303b5e");
 	RiskColor = Color3.fromRGB(255, 50, 50),
 
 	Black = Color3.new(0, 0, 0);
@@ -143,44 +147,19 @@ local Library: {[string]: any} = {
 	ScreenGui = ScreenGui;
 	ThemeStyle = "Default";
 	ThemeCornerDefaults = setmetatable({}, { __mode = "k" });
-	WidgetCornersBoxy = false;
-	WidgetCornersConnection = nil;
+	WindowCornerRadius = nil;
+	CornerRadiusConnection = nil;
 };
 
 function Library:ApplyThemeCorner(corner)
-	if not self.WidgetCornersBoxy then
-		return
-	end
 	if self.ThemeCornerDefaults[corner] == nil then
 		self.ThemeCornerDefaults[corner] = corner.CornerRadius
 	end
-	corner.CornerRadius = UDim.new(0, 0)
-end
-
-function Library:SetWidgetCornersBoxy(enabled)
-	self.WidgetCornersBoxy = enabled == true
-	if self.WidgetCornersConnection then
-		self.WidgetCornersConnection:Disconnect()
-		self.WidgetCornersConnection = nil
-	end
-	if self.WidgetCornersBoxy then
-		for _, descendant in ipairs(self.ScreenGui:GetDescendants()) do
-			if descendant:IsA("UICorner") then
-				self:ApplyThemeCorner(descendant)
-			end
-		end
-		self.WidgetCornersConnection = self.ScreenGui.DescendantAdded:Connect(function(descendant)
-			if descendant:IsA("UICorner") then
-				self:ApplyThemeCorner(descendant)
-			end
-		end)
+	local defaultRadius = self.ThemeCornerDefaults[corner]
+	if self.WindowCornerRadius ~= nil and defaultRadius.Scale == 0 then
+		corner.CornerRadius = UDim.new(0, self.WindowCornerRadius)
 	else
-		for corner, originalRadius in pairs(self.ThemeCornerDefaults) do
-			if corner.Parent then
-				corner.CornerRadius = originalRadius
-			end
-			self.ThemeCornerDefaults[corner] = nil
-		end
+		corner.CornerRadius = defaultRadius
 	end
 end
 
@@ -270,19 +249,48 @@ function Library:Create(Class, Properties)
 end;
 
 function Library:SetWindowCornerRadius(radius)
-	local corner = Library.WindowOuterCorner
-	if not corner then
+	if radius ~= nil then
+		radius = tonumber(radius)
+		if not radius then
+			return false
+		end
+		radius = math.clamp(math.floor(radius + 0.5), 0, 16)
+	end
+	if not Library.WindowOuterCorner then
 		return false
 	end
-	if radius == nil then
-		corner.CornerRadius = Library.WindowOuterCornerDefault
-		return true
+
+	Library.WindowCornerRadius = radius
+	for _, descendant in ipairs(Library.ScreenGui:GetDescendants()) do
+		if descendant:IsA("UICorner") then
+			Library:ApplyThemeCorner(descendant)
+		end
 	end
-	radius = tonumber(radius)
-	if not radius then
-		return false
+	if Library.CornerRadiusConnection then
+		Library.CornerRadiusConnection:Disconnect()
+		Library.CornerRadiusConnection = nil
 	end
-	corner.CornerRadius = UDim.new(0, math.clamp(math.floor(radius + 0.5), 0, 16))
+	if radius ~= nil then
+		Library.CornerRadiusConnection = Library.ScreenGui.DescendantAdded:Connect(function(descendant)
+			if descendant:IsA("UICorner") then
+				Library:ApplyThemeCorner(descendant)
+			end
+		end)
+		Library.WindowOuterCorner.CornerRadius = UDim.new(0, radius)
+		if Library.WindowInnerCorner then
+			Library.WindowInnerCorner.CornerRadius = UDim.new(0, math.max(0, radius - 1))
+		end
+		if Library.ESPPreviewCorner then
+			Library.ESPPreviewCorner.CornerRadius = UDim.new(0, radius)
+		end
+		if Library.ESPPreviewHeader then
+			Library.ESPPreviewHeader.Position = UDim2.fromOffset(radius, 0)
+			Library.ESPPreviewHeader.Size = UDim2.new(1, -radius * 2, 0, 30)
+		end
+	elseif Library.ESPPreviewHeader then
+		Library.ESPPreviewHeader.Position = UDim2.fromOffset(0, 0)
+		Library.ESPPreviewHeader.Size = UDim2.new(1, 0, 0, 30)
+	end
 	return true
 end
 
@@ -423,6 +431,11 @@ function Library:MakeUIDraggable(inst, Cutoff, Limit)
 		if clickPos.Y > (Cutoff or 40) * Library:GetInstanceScale(M) then
 			return
 		end
+		if Library.WindowDragging then
+			return
+		end
+		Library.WindowDragging = true
+		Library.WindowDraggingChanged:Fire(true)
 
 		
 		local absPos = inst.AbsolutePosition
@@ -467,6 +480,8 @@ function Library:MakeUIDraggable(inst, Cutoff, Limit)
 		if Library.Toggled then
 			inst.Visible = true
 		end
+		Library.WindowDragging = false
+		Library.WindowDraggingChanged:Fire(false)
 	end)
 end
 
@@ -1045,6 +1060,7 @@ function Library:Unload(screenAlreadyDestroying)
 	Library.WindowHolder = nil
 	Library.OnToggledChanged:Destroy()
 	Library.ToggleChanged:Destroy()
+	Library.WindowDraggingChanged:Destroy()
 
 	local environment = getgenv()
 	if environment.Library == Library then
@@ -1830,10 +1846,11 @@ function Library:CreateWindow(...)
 		ZIndex = 1;
 		Parent = Outer;
 	});
-	Library:Create('UICorner', {
+	Library.WindowInnerCorner = Library:Create('UICorner', {
 		CornerRadius = UDim.new(0, 2);
 		Parent = Inner;
 	})
+	Library.WindowInnerCornerDefault = Library.WindowInnerCorner.CornerRadius
 
 	Library:AddToRegistry(Inner, {
 		BackgroundColor3 = 'MainColor';
@@ -1888,18 +1905,13 @@ function Library:CreateWindow(...)
 	WindowAccentLabel.RichText = false;
 	Library.WindowAccentLabel = WindowAccentLabel;
 	local WindowTitleLogo = Library:Create('ImageLabel', {
-		Name = 'WindowTitleLogo';
-		Active = false;
 		BackgroundTransparency = 1;
 		BorderSizePixel = 0;
-		Image = 'rbxthumb://type=Asset&id=129868188377055&w=420&h=420';
-		ImageColor3 = Color3.new(1, 1, 1);
-		ImageTransparency = 0;
+		Image = 'rbxassetid://129868188377055';
 		ScaleType = Enum.ScaleType.Fit;
-		Position = UDim2.fromOffset(8, 0);
-		Size = UDim2.fromOffset(28, 28);
-		ZIndex = 5;
-		Parent = Inner;
+		Size = UDim2.fromOffset(16, 16);
+		ZIndex = 4;
+		Parent = WindowTitleContent;
 	})
 	Library.WindowTitleFontName = "GothamBold"
 	Library.UIFontName = "Gotham"
@@ -1973,17 +1985,22 @@ function Library:CreateWindow(...)
 		local gap = accentWidth > 0 and 4 or 0
 		local maximumContentWidth = math.max(1, availableWidth - 24)
 		local totalTextWidth = baseWidth + accentWidth
-		if totalTextWidth + gap > maximumContentWidth and totalTextWidth > 0 then
-			local textWidthBudget = math.max(2, maximumContentWidth - gap)
+		local logoWidth = 16
+		local logoGap = totalTextWidth > 0 and 5 or 0
+		if totalTextWidth + gap + logoGap + logoWidth > maximumContentWidth and totalTextWidth > 0 then
+			local textWidthBudget = math.max(2, maximumContentWidth - gap - logoGap - logoWidth)
 			baseWidth = math.max(1, math.floor(textWidthBudget * baseWidth / totalTextWidth))
 			accentWidth = math.max(1, textWidthBudget - baseWidth)
 		end
 
-		local contentWidth = baseWidth + gap + accentWidth
+		local textWidth = baseWidth + gap + accentWidth
+		local contentWidth = textWidth + (textWidth > 0 and 5 or 0) + logoWidth
 		WindowLabel.Position = UDim2.fromOffset(0, 0)
 		WindowLabel.Size = UDim2.fromOffset(baseWidth, 24)
 		WindowAccentLabel.Position = UDim2.fromOffset(baseWidth + gap, 0)
 		WindowAccentLabel.Size = UDim2.fromOffset(accentWidth, 24)
+		WindowTitleLogo.Position = UDim2.fromOffset(textWidth + (textWidth > 0 and 5 or 0), 4)
+		WindowTitleLogo.Size = UDim2.fromOffset(logoWidth, logoWidth)
 		WindowTitleContent.Size = UDim2.fromOffset(contentWidth, 24)
 		WindowTitleContent.Position = UDim2.new(0.5, 0, 0, 0)
 		WindowTitlePlate.Size = UDim2.fromOffset(math.min(availableWidth, contentWidth + 24), 24)
@@ -5067,9 +5084,13 @@ return function(Library, context)
 		for _, row in ipairs(Library.KeybindContainer and Library.KeybindContainer:GetChildren() or {}) do
 			if row:IsA("TextLabel") then
 				row.BackgroundTransparency = backgroundTransparency
-				local badge = row:FindFirstChildWhichIsA("Frame")
+				local badge = row:FindFirstChild("HotkeyKeyBadge")
 				if badge then
 					badge.BackgroundTransparency = backgroundTransparency
+				end
+				local modeBadge = row:FindFirstChild("HotkeyModeBadge")
+				if modeBadge then
+					modeBadge.BackgroundTransparency = backgroundTransparency
 				end
 			end
 		end
@@ -6584,6 +6605,7 @@ return function(Library, context)
 			TextSize = 14;
 			Text = Info.Text;
 			TextXAlignment = Enum.TextXAlignment.Left;
+			TextTruncate = Enum.TextTruncate.AtEnd;
 			ZIndex = 6;
 			Parent = ToggleRow;
 		})
@@ -6861,6 +6883,7 @@ return function(Library, context)
 					Addon:Update()
 				end
 			end
+			Library.ToggleChanged:Fire(Toggle.Value, Toggle.Flag)
 			pcall(function()
 				Library:SafeCallback(Toggle.Callback, Toggle.Value);
 				Library:SafeCallback(Toggle.Changed, Toggle.Value);
@@ -6868,7 +6891,6 @@ return function(Library, context)
 				aztup_options.OnlyShowEnabledKeybinds.__internal:fire()
 			end)
 			Toggle.__internal:fire(Toggle.Value)
-			Library.ToggleChanged:Fire(Toggle.Value)
 			Library:UpdateDependencyBoxes();
 		end;
 
@@ -6934,6 +6956,9 @@ end
 
 			SyncToggleState = Info.SyncToggleState or false;
 		};
+		if ParentObj.Type == "Toggle" then
+			ParentObj.ArrayListKeybindId = Idx
+		end
 
 		local Modes = Info.Modes or { 'Toggle', 'Hold' };
 
@@ -7019,8 +7044,9 @@ end
 		});
 
 		local ContainerLabel, ContainerStroke = Library:CreateLabel({
+			Name = "HotkeyRow",
 			TextXAlignment = Enum.TextXAlignment.Left;
-			Size = UDim2.new(1, 0, 0, 26);
+			Size = UDim2.new(1, 0, 0, 30);
 			TextSize = 14;
 			TextYAlignment = Enum.TextYAlignment.Center;
 			RichText = true;
@@ -7036,11 +7062,12 @@ end
 			Parent = ContainerLabel,
 		})
 		local keyBadge = Library:Create("Frame", {
+			Name = "HotkeyKeyBadge",
 			BackgroundColor3 = Library.MainColor,
 			BackgroundTransparency = 0.08,
 			BorderSizePixel = 0,
-			Position = UDim2.fromOffset(6, 4),
-			Size = UDim2.fromOffset(30, 18),
+			Position = UDim2.fromOffset(7, 5),
+			Size = UDim2.fromOffset(30, 20),
 			ZIndex = 111,
 			Parent = ContainerLabel,
 		})
@@ -7065,10 +7092,44 @@ end
 		}, true, lexend.bold)
 		keyBadgeLabel:SetAttribute("YSLBoldKeybind", true)
 		keyBadgeLabel.FontFace = Font.fromEnum(Enum.Font.GothamBold)
+		local modeBadge = Library:Create("Frame", {
+			Name = "HotkeyModeBadge",
+			AnchorPoint = Vector2.new(1, 0.5),
+			BackgroundColor3 = Library.MainColor,
+			BackgroundTransparency = 0.08,
+			BorderSizePixel = 0,
+			Position = UDim2.new(1, -7, 0.5, 0),
+			Size = UDim2.fromOffset(52, 18),
+			ZIndex = 111,
+			Parent = ContainerLabel,
+		})
+		Library:AddToRegistry(modeBadge, {
+			BackgroundColor3 = "MainColor",
+		}, true)
+		Library:Create("UICorner", {
+			CornerRadius = UDim.new(0, 8),
+			Parent = modeBadge,
+		})
+		local modeBadgeLabel = Library:CreateLabelNoStroke({
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Text = "",
+			TextSize = 9,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			TextStrokeTransparency = 1,
+			ZIndex = 112,
+			Parent = modeBadge,
+		}, true, lexend.bold)
+		modeBadgeLabel.FontFace = Font.fromEnum(Enum.Font.GothamBold)
+		Library:AddToRegistry(modeBadgeLabel, {
+			TextColor3 = "FontColor",
+		}, true)
 		local actionLabel = Library:CreateLabel({
 			BackgroundTransparency = 1,
 			Position = UDim2.fromOffset(50, 0),
-			Size = UDim2.new(1, -56, 1, 0),
+			Size = UDim2.new(1, -108, 1, 0),
 			Text = "",
 			TextSize = 14,
 			TextTruncate = Enum.TextTruncate.AtEnd,
@@ -7083,9 +7144,11 @@ end
 		}, true)
 		local labelStroke = ContainerStroke
 		labelStroke.Color = Library.OutlineColor
-		labelStroke.Transparency = 0.55
+		labelStroke.Transparency = 0.4
 		Library:AddToRegistry(labelStroke, {
-			Color = "OutlineColor",
+			Color = function()
+				return KeyPicker:GetState() and Library.AccentColor or Library.OutlineColor
+			end,
 		}, true)
 
 		local function escapeRichText(value)
@@ -7195,24 +7258,26 @@ end
 			for _, Label in next, Library.KeybindContainer:GetChildren() do
 				if Label:IsA('TextLabel') then
 					if Label.Visible and not Label:GetAttribute('KeybindFadingOut') then
-						YSize = YSize + 26
+						YSize = YSize + 30
 					end
 
 					local scale = Library:GetUIScale()
 					local action = Label:FindFirstChildWhichIsA("TextLabel")
-					local badge = Label:FindFirstChildWhichIsA("Frame")
+					local badge = Label:FindFirstChild("HotkeyKeyBadge")
+					local modeBadge = Label:FindFirstChild("HotkeyModeBadge")
 					local LabelWidth = action
 						and Library:GetLexendTextBounds(action.Text, lexend.regular, 14) / scale
 						or 0
 					LabelWidth += badge and badge.AbsoluteSize.X / scale or 0
-					LabelWidth += 32
+					LabelWidth += modeBadge and modeBadge.AbsoluteSize.X / scale or 0
+					LabelWidth += 56
 					if Label.Visible and (LabelWidth > XSize) then
 						XSize = LabelWidth
 					end
 				end
 			end
 
-			local NewHeight = YSize == 0 and 34 or YSize + 36
+			local NewHeight = YSize == 0 and 38 or YSize + 40
 			local NewWidth = math.max(XSize + 24, 250)
 			local properties = {
 				Size = UDim2.new(0, NewWidth, 0, NewHeight);
@@ -7270,6 +7335,16 @@ end
 			)
 			keyBadge.Size = UDim2.fromOffset(keyWidth, 18)
 			keyBadgeLabel.Text = KeyPicker.Value
+			local modeText = State and "ACTIVE" or string.upper(tostring(KeyPicker.Mode or "TOGGLE"))
+			modeBadgeLabel.Text = modeText
+			modeBadge.BackgroundColor3 = State and Library.AccentColorDark or Library.MainColor
+			modeBadgeLabel.TextColor3 = Library.FontColor
+			Library.RegistryMap[modeBadge].Properties.BackgroundColor3 = State
+				and function()
+					return Library.AccentColorDark
+				end
+				or "MainColor"
+			Library.RegistryMap[modeBadgeLabel].Properties.TextColor3 = "FontColor"
 			keyBadge.BackgroundColor3 = State and Library.AccentColorDark or Library.MainColor
 			keyBadgeLabel.TextColor3 = State and Library.FontColor or Library.AccentColor
 			Library.RegistryMap[keyBadge].Properties.BackgroundColor3 = State
@@ -7281,7 +7356,7 @@ end
 			ContainerLabel.Text = ""
 			actionLabel.Text = actionText
 			actionLabel.Position = UDim2.fromOffset(keyWidth + 14, 0)
-			actionLabel.Size = UDim2.new(1, -(keyWidth + 20), 1, 0)
+			actionLabel.Size = UDim2.new(1, -(keyWidth + 78), 1, 0)
 		    local x, _ = Library:GetLexendTextBounds(string.format('[%s]  %s', KeyPicker.Value, Info.Text), lexend.regular, 14)
 		    ContainerLabel.LayoutOrder = -x
 		    actionLabel.TextColor3 = State and Library.AccentColor or Library.FontColor
@@ -7377,6 +7452,9 @@ end
 			Library.RegistryMap[actionLabel].Properties.TextColor3 = State and 'AccentColor' or 'FontColor';
 
 			QueueKeybindFrameSize()
+			if ParentObj.Type == "Toggle" and Library.ArrayListController then
+				Library.ArrayListController:Refresh()
+			end
 		end;
 
 		function KeyPicker:GetState()
@@ -7715,6 +7793,432 @@ return function(library)
 	return controller
 end
 	end,
+	["@src/ui/arraylist"] = function()
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+return function(library)
+	local gradientEnabled = true
+	local gradientDuration = 5
+	local visible = false
+	local backgroundEnabled = true
+	local textSize = 18
+	local lastColorRefresh = 0
+	local labels = {}
+	local rowsById = {}
+	local exitingRows = {}
+	local leftSide = false
+	local bottomSide = false
+	local dragging = false
+	local refresh
+
+	local panel = library:Create("Frame", {
+		Name = "YSLArrayList",
+		Active = true,
+		AnchorPoint = Vector2.new(1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.new(1, -8, 0, 88),
+		Size = UDim2.fromOffset(240, 20),
+		Visible = false,
+		ZIndex = 80,
+		Parent = library.ScreenGui,
+	})
+	library.ArrayListFrame = panel
+	library:MakeDraggable(panel, 16, true)
+	panel.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+		end
+	end)
+
+	local function updatePlacement()
+		local absolutePosition = panel.AbsolutePosition
+		local absoluteSize = panel.AbsoluteSize
+		local center = absolutePosition + absoluteSize * 0.5
+		local camera = workspace.CurrentCamera
+		local viewport = camera and camera.ViewportSize
+		if not viewport then
+			return
+		end
+
+		local newLeftSide = center.X < viewport.X * 0.5
+		local newBottomSide = center.Y > viewport.Y * 0.5
+		local changed = newLeftSide ~= leftSide or newBottomSide ~= bottomSide
+		leftSide = newLeftSide
+		bottomSide = newBottomSide
+		panel.AnchorPoint = Vector2.new(leftSide and 0 or 1, bottomSide and 1 or 0)
+		library.ArrayListAnchorPoint = panel.AnchorPoint
+		panel.Position = UDim2.fromOffset(
+			leftSide and absolutePosition.X or absolutePosition.X + absoluteSize.X,
+			bottomSide and absolutePosition.Y + absoluteSize.Y or absolutePosition.Y
+		)
+		if changed then
+			refresh()
+		end
+	end
+
+	library:GiveSignal(UserInputService.InputEnded:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+			updatePlacement()
+		end
+	end))
+
+	local list = library:Create("Frame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(0, 16),
+		Size = UDim2.new(1, 0, 1, -16),
+		ZIndex = 80,
+		Parent = panel,
+	})
+	local layout = library:Create("UIListLayout", {
+		Padding = UDim.new(0, 0),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Top,
+		Parent = list,
+	})
+
+	local function getGradientColor(position)
+		local dark = library.AccentColorDark or library:GetDarkerColor(library.AccentColor)
+		position = position % 1
+		local section = position * 4
+		local index = math.floor(section)
+		local blend = section - index
+		blend = blend * blend * (3 - 2 * blend)
+		if index == 0 then
+			return library.AccentColor:Lerp(library.FontColor, blend)
+		elseif index == 1 then
+			return library.FontColor:Lerp(dark, blend)
+		elseif index == 2 then
+			return dark:Lerp(library.FontColor, blend)
+		end
+		return library.FontColor:Lerp(library.AccentColor, blend)
+	end
+
+	local function refreshColors()
+		local count = #labels
+		local phase = gradientEnabled and ((os.clock() / gradientDuration) % 1) or 0
+		for index, entry in ipairs(labels) do
+			local color
+			if gradientEnabled then
+				local rowPosition = count <= 1 and 0.5 or (index - 1) / (count - 1)
+				color = getGradientColor((rowPosition + phase) % 1)
+			else
+				color = library.AccentColor
+			end
+			entry.Label.TextColor3 = color
+			local nameText = string.format(
+				'<font color="#%s">%s</font>',
+				color:ToHex(),
+				entry.EscapedName
+			)
+			local detailText = entry.EscapedDetail ~= ""
+				and string.format(
+					'  <font color="#%s">%s</font>',
+					library.FontColor:ToHex(),
+					entry.EscapedDetail
+				)
+				or ""
+			entry.Label.Text = nameText .. detailText
+			entry.Sidebar.BackgroundColor3 = color
+		end
+	end
+
+	local function escapeRichText(text)
+		return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
+	end
+
+	local function createRow(entry, order, animateIn)
+		local horizontalAnchor = leftSide and 0 or 1
+		local textAlignment = leftSide and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
+		local rowHeight = math.ceil(textSize * 1.36)
+		local row = library:Create("Frame", {
+			Active = true,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			LayoutOrder = order,
+			Size = UDim2.new(1, 0, 0, animateIn and 0 or rowHeight),
+			ZIndex = 81,
+			Parent = list,
+		})
+		local background = library:Create("Frame", {
+			Active = true,
+			AnchorPoint = Vector2.new(horizontalAnchor, 0),
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = animateIn and 1 or (backgroundEnabled and 0.25 or 1),
+			BorderSizePixel = 0,
+			Position = UDim2.new(horizontalAnchor, 0, 0, 0),
+			Size = UDim2.fromOffset(entry.TextWidth + 12, rowHeight),
+			ZIndex = 81,
+			Parent = row,
+		})
+		local sidebar = library:Create("Frame", {
+			Active = true,
+			AnchorPoint = Vector2.new(horizontalAnchor, 0),
+			BackgroundColor3 = library.AccentColor,
+			BackgroundTransparency = animateIn and 1 or 0,
+			BorderSizePixel = 0,
+			Position = UDim2.new(horizontalAnchor, 0, 0, 0),
+			Size = UDim2.new(0, 2, 1, 0),
+			ZIndex = 83,
+			Parent = row,
+		})
+		local label = library:CreateLabel({
+			Active = true,
+			AnchorPoint = Vector2.new(horizontalAnchor, 0),
+			BackgroundTransparency = 1,
+			Position = UDim2.new(horizontalAnchor, leftSide and 5 or -5, 0, 0),
+			Size = UDim2.fromOffset(entry.TextWidth + 2, rowHeight),
+			FontFace = lexend.bold,
+			Text = entry.EscapedName,
+			RichText = true,
+			TextColor3 = Color3.new(1, 1, 1),
+			TextSize = textSize,
+			TextStrokeColor3 = Color3.new(0, 0, 0),
+			TextStrokeTransparency = animateIn and 1 or 0.15,
+			TextTransparency = animateIn and 1 or 0,
+			TextXAlignment = textAlignment,
+			ZIndex = 82,
+			Parent = row,
+		})
+		library:AddToRegistry(label, {
+			TextStrokeColor3 = "Black",
+		})
+
+		local result = {
+			Id = entry.Id,
+			Toggle = entry.Toggle,
+			Row = row,
+			Background = background,
+			Label = label,
+			EscapedName = entry.EscapedName,
+			EscapedDetail = entry.EscapedDetail,
+			TextWidth = entry.TextWidth,
+			Sidebar = sidebar,
+		}
+		rowsById[entry.Id] = result
+		local function handleRowInput(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 and result.Toggle.Value then
+				result.Toggle:SetValue(false)
+			end
+		end
+		row.InputBegan:Connect(handleRowInput)
+		background.InputBegan:Connect(handleRowInput)
+		sidebar.InputBegan:Connect(handleRowInput)
+		label.InputBegan:Connect(handleRowInput)
+
+		if animateIn then
+			local tweenInfo = TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+			TweenService:Create(row, tweenInfo, {
+				Size = UDim2.new(1, 0, 0, rowHeight),
+			}):Play()
+			TweenService:Create(background, tweenInfo, {
+				BackgroundTransparency = backgroundEnabled and 0.25 or 1,
+			}):Play()
+			TweenService:Create(sidebar, tweenInfo, { BackgroundTransparency = 0 }):Play()
+			TweenService:Create(label, tweenInfo, {
+				TextTransparency = 0,
+				TextStrokeTransparency = 0.15,
+			}):Play()
+		end
+		return result
+	end
+
+	local function animateRemove(entry)
+		if entry.Removing then
+			return
+		end
+		entry.Removing = true
+		rowsById[entry.Id] = nil
+		exitingRows[entry.Id] = entry
+		local tweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		local tweens = {
+			TweenService:Create(entry.Background, tweenInfo, {
+				BackgroundTransparency = 1,
+			}),
+			TweenService:Create(entry.Sidebar, tweenInfo, {
+				BackgroundTransparency = 1,
+			}),
+			TweenService:Create(entry.Label, tweenInfo, {
+				TextTransparency = 1,
+				TextStrokeTransparency = 1,
+			}),
+		}
+		tweens[1].Completed:Connect(function()
+			if entry.Row.Parent then
+				entry.Row:Destroy()
+			end
+			if exitingRows[entry.Id] == entry then
+				exitingRows[entry.Id] = nil
+				if visible then
+					refresh()
+				end
+			end
+		end)
+		for _, tween in ipairs(tweens) do
+			tween:Play()
+		end
+	end
+
+	refresh = function(changedToggle, changedValue)
+		local active = {}
+		local activeById = {}
+		for id, toggle in pairs(aztup_toggles) do
+			if toggle.Type == "Toggle" and toggle.Value and toggle.ArrayList ~= false
+				and toggle.TabName ~= "Settings" then
+				local details = {}
+				if toggle.ArrayListKeybindId then
+					local keybind = aztup_options[toggle.ArrayListKeybindId]
+					if keybind and keybind.Value and keybind.Value ~= "None" then
+						table.insert(details, "[" .. tostring(keybind.Value) .. "]")
+					end
+				end
+				local detailText = table.concat(details, "  ")
+				local text = toggle.Name .. (detailText ~= "" and "  " .. detailText or "")
+				local textWidth = math.ceil(library:GetLexendTextBounds(text, lexend.bold, textSize))
+				local entry = {
+					Id = id,
+					Toggle = toggle,
+					Name = toggle.Name,
+					DetailText = detailText,
+					EscapedName = escapeRichText(toggle.Name),
+					EscapedDetail = escapeRichText(detailText),
+					TextLength = #text,
+					TextWidth = textWidth,
+				}
+				table.insert(active, entry)
+				activeById[id] = entry
+			end
+		end
+		table.sort(active, function(left, right)
+			if left.TextWidth ~= right.TextWidth then
+				return left.TextWidth > right.TextWidth
+			end
+			if left.TextLength ~= right.TextLength then
+				return left.TextLength > right.TextLength
+			end
+			local leftName = string.lower(left.Toggle.Name)
+			local rightName = string.lower(right.Toggle.Name)
+			if leftName == rightName then
+				return tostring(left.Id) < tostring(right.Id)
+			end
+			return leftName < rightName
+		end)
+		layout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+		local rowHeight = math.ceil(textSize * 1.36)
+		for id, row in pairs(rowsById) do
+			if not activeById[id] then
+				if changedToggle == row.Toggle and changedValue == false then
+					animateRemove(row)
+				else
+					rowsById[id] = nil
+					row.Row:Destroy()
+				end
+			end
+		end
+
+		table.clear(labels)
+		local width = 0
+		local exitingCount = 0
+		local reservedOrders = {}
+		for _, row in pairs(exitingRows) do
+			exitingCount += 1
+			reservedOrders[row.Row.LayoutOrder] = true
+			width = math.max(width, row.TextWidth + 12)
+		end
+		local layoutOrder = 0
+		for index, entry in ipairs(active) do
+			width = math.max(width, entry.TextWidth + 12)
+			layoutOrder += 1
+			while reservedOrders[layoutOrder] do
+				layoutOrder += 1
+			end
+			local row = rowsById[entry.Id]
+			if row then
+				row.Toggle = entry.Toggle
+				row.Row.LayoutOrder = layoutOrder
+				row.Row.Size = UDim2.new(1, 0, 0, rowHeight)
+				row.Background.Size = UDim2.fromOffset(entry.TextWidth + 12, rowHeight)
+				row.Background.BackgroundTransparency = backgroundEnabled and 0.25 or 1
+				row.Label.Size = UDim2.fromOffset(entry.TextWidth + 2, rowHeight)
+				row.TextWidth = entry.TextWidth
+				row.EscapedName = entry.EscapedName
+				row.EscapedDetail = entry.EscapedDetail
+			else
+				row = createRow(entry, layoutOrder, changedToggle == entry.Toggle and changedValue == true)
+			end
+			table.insert(labels, row)
+		end
+
+		panel.Size = UDim2.fromOffset(
+			math.max(100, width + 4),
+			16 + (#labels + exitingCount) * rowHeight
+		)
+		panel.Visible = visible and (#labels + exitingCount) > 0
+		refreshColors()
+	end
+
+	local controller = {}
+	function controller:SetVisible(value)
+		visible = not not value
+		refresh()
+	end
+
+	function controller:SetBackgroundEnabled(enabled)
+		backgroundEnabled = not not enabled
+		for _, entry in ipairs(labels) do
+			entry.Background.BackgroundTransparency = backgroundEnabled and 0.25 or 1
+		end
+	end
+
+	function controller:Refresh()
+		refresh()
+	end
+
+	function controller:SetGradient(enabled, duration)
+		gradientEnabled = not not enabled
+		gradientDuration = math.clamp(tonumber(duration) or gradientDuration, 1, 12)
+		refreshColors()
+	end
+
+	function controller:SyncPlacement()
+		leftSide = panel.AnchorPoint.X < 0.5
+		bottomSide = panel.AnchorPoint.Y > 0.5
+		library.ArrayListAnchorPoint = panel.AnchorPoint
+		refresh()
+	end
+
+	library.ArrayListAnchorPoint = panel.AnchorPoint
+	library.ArrayListController = controller
+
+	library:GiveSignal(library.ToggleChanged.Event:Connect(function(value, toggleId)
+		if visible then
+			local toggle = aztup_toggles[toggleId]
+			refresh(toggle, value)
+		end
+	end))
+	library:GiveSignal(RunService.RenderStepped:Connect(function()
+		if not visible or not gradientEnabled or #labels == 0 then
+			lastColorRefresh = 0
+			return
+		end
+		local now = os.clock()
+		if now - lastColorRefresh >= 1 / 15 then
+			lastColorRefresh = now
+			refreshColors()
+		end
+	end))
+	library:GiveSignal(library.ScreenGui.Destroying:Connect(function()
+		panel.Visible = false
+	end))
+
+	return controller
+end
+	end,
 	["@src/ui/esp_preview"] = function()
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
@@ -7735,6 +8239,11 @@ return function(library)
 	})
 	library.ESPPreviewFrame = frame
 	library:AddUIScale(frame)
+	library.ESPPreviewCorner = library:Create("UICorner", {
+		CornerRadius = UDim.new(0, 0),
+		Parent = frame,
+	})
+	library.ESPPreviewCornerDefault = library.ESPPreviewCorner.CornerRadius
 	local previewStroke = library:Create("UIStroke", {
 		Color = library.AccentColor,
 		Thickness = 3,
@@ -8310,7 +8819,7 @@ return function(library)
 	end
 
 	local function updateVisibility()
-		frame.Visible = library.Toggled == true
+		frame.Visible = library.Toggled == true and library.WindowDragging ~= true
 		updatePlacement()
 	end
 	local function updatePreview()
@@ -8343,6 +8852,7 @@ return function(library)
 	end
 	library:GiveSignal(screenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(updatePlacement))
 	library:GiveSignal(library.OnToggledChanged.Event:Connect(updateVisibility))
+	library:GiveSignal(library.WindowDraggingChanged.Event:Connect(updateVisibility))
 	local viewportSizeConnection
 	local function updateCameraBinding()
 		if viewportSizeConnection then
@@ -8379,62 +8889,83 @@ end
 	["@src/ui/side_image"] = function()
 local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local DEFAULT_ASSETS = {
-	["Anime Girl 1"] = "81182146149930",
-	["Anime Girl 2"] = "74029364711949",
+	["Anime Girl 1"] = "115786328930349",
 }
-local IMAGE_SIZE = UDim2.fromOffset(300, 360)
+local DEFAULT_IMAGE_NAME = "Anime Girl 1"
+local DEFAULT_IMAGE_SIZE = 400
 
 return function(library)
+	local sideImageScreenGui = Instance.new("ScreenGui")
+	sideImageScreenGui.Name = "YSLMethodSideImages"
+	sideImageScreenGui.DisplayOrder = library.ScreenGui.DisplayOrder - 1
+	sideImageScreenGui.IgnoreGuiInset = library.ScreenGui.IgnoreGuiInset
+	sideImageScreenGui.ResetOnSpawn = false
+	sideImageScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+	sideImageScreenGui.Parent = library.ScreenGui.Parent
+	library:OnUnload(function()
+		sideImageScreenGui:Destroy()
+	end)
+
 	local container = library:Create("Frame", {
 		Name = "YSL_SideImages",
 		BackgroundTransparency = 1,
 		ClipsDescendants = false,
 		Size = UDim2.fromScale(1, 1),
 		Position = UDim2.fromScale(0, 0),
-		ZIndex = 0,
-		Parent = library.ScreenGui,
+		ZIndex = 1,
+		Parent = sideImageScreenGui,
 	})
 
-	local assets = table.clone(DEFAULT_ASSETS)
 	local images = {}
-	local selection = { ["Anime Girl 1"] = true }
 	local enabled = true
-	local onChanged
-	local activeDrag
-	local dragMoved = false
+	local windowDragging = false
 
-	local function viewportBounds()
-		local camera = workspace.CurrentCamera
-		if not camera then
-			return nil
+	local function getPointerPositions()
+		local pointerPosition = UserInputService:GetMouseLocation()
+		if library.ScreenGui.IgnoreGuiInset then
+			return { pointerPosition }, { Vector2.zero }
 		end
-		local topLeftInset, bottomRightInset = Vector2.zero, Vector2.zero
-		if not library.ScreenGui.IgnoreGuiInset then
-			topLeftInset, bottomRightInset = GuiService:GetGuiInset()
+		local topLeftInset = GuiService:GetGuiInset()
+		return { pointerPosition - topLeftInset, pointerPosition }, { topLeftInset, Vector2.zero }
+	end
+
+	local function containsPoint(image, point)
+		local position = image.AbsolutePosition
+		local size = image.AbsoluteSize
+		return image.Visible and point.X >= position.X and point.X <= position.X + size.X
+			and point.Y >= position.Y and point.Y <= position.Y + size.Y
+	end
+
+	local function updateWindowAnchoredImages()
+		local window = library.WindowHolder
+		if not window or not window.Parent then
+			return
 		end
-		return camera.ViewportSize - topLeftInset - bottomRightInset, topLeftInset
+		local scale = library:GetUIScale()
+		local windowOrigin = (window.AbsolutePosition - container.AbsolutePosition) / scale
+		local imageSize = window.AbsoluteSize.X / scale
+		for _, image in pairs(images) do
+			if image then
+				image.Size = UDim2.fromOffset(imageSize, imageSize)
+				image.Position = UDim2.fromOffset(windowOrigin.X, windowOrigin.Y - imageSize * 0.70)
+			end
+		end
 	end
 
 	local function getDefaultPosition(index)
 		local window = library.WindowHolder
-		local viewportSize, inset = viewportBounds()
-		if not window or not viewportSize then
+		if not window or not window.Parent then
 			return UDim2.fromOffset(16 + (index - 1) * 36, 80)
 		end
 
-		local windowPosition = window.AbsolutePosition - inset
-		local imageSize = Vector2.new(IMAGE_SIZE.X.Offset, IMAGE_SIZE.Y.Offset)
-		local preview = library.ESPPreviewFrame
-		local previewOnRight = not preview
-			or preview.AbsolutePosition.X >= window.AbsolutePosition.X + window.AbsoluteSize.X / 2
-		local preferredX = previewOnRight
-			and windowPosition.X - imageSize.X + 100
-			or windowPosition.X + window.AbsoluteSize.X - 100
-		local x = math.clamp(preferredX + (index - 1) * 36, 8, math.max(8, viewportSize.X - imageSize.X - 8))
-		local y = math.clamp(windowPosition.Y - imageSize.Y + 104 + (index - 1) * 30, 8, math.max(8, viewportSize.Y - imageSize.Y - 8))
-		return UDim2.fromOffset(x, y)
+		local scale = library:GetUIScale()
+		local windowOrigin = (window.AbsolutePosition - container.AbsolutePosition) / scale
+		local imageSize = window.AbsoluteSize.X / scale
+		return UDim2.fromOffset(windowOrigin.X, windowOrigin.Y - imageSize * 0.70)
 	end
 
 	local function preload(image)
@@ -8463,170 +8994,85 @@ return function(library)
 		end
 		image = library:Create("ImageLabel", {
 			Name = "YSL_SideImage_" .. name:gsub("%W", ""),
-			Active = true,
+			Active = false,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Image = "rbxthumb://type=Asset&id=" .. assets[name] .. "&w=420&h=420",
+			Image = "rbxthumb://type=Asset&id=" .. DEFAULT_ASSETS[name] .. "&w=420&h=420",
 			ScaleType = Enum.ScaleType.Fit,
-			Size = IMAGE_SIZE,
+			Size = UDim2.fromOffset(DEFAULT_IMAGE_SIZE, DEFAULT_IMAGE_SIZE),
 			Position = getDefaultPosition(index),
 			Visible = false,
-			ZIndex = 0,
+			ZIndex = 1,
 			Parent = container,
 		})
+		image.Rotation = 0
 		library:AddUIScale(image)
-		image.Rotation = 5
 		images[name] = image
-		library:MakeDraggable(image, IMAGE_SIZE.Y.Offset + 20)
-		image.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 then
-				activeDrag = image
-				dragMoved = false
-			end
-		end)
 		preload(image)
 		return image
 	end
 
 	local function refresh()
-		if not enabled or library.Toggled ~= true then
-			for _, image in pairs(images) do
+		if not enabled or library.Toggled ~= true or windowDragging then
+			for name, image in pairs(images) do
 				image.Visible = false
 			end
 			return
 		end
-		local index = 0
-		for name, image in pairs(images) do
-			local selected = selection[name] == true
-			image.Visible = selected
-			if selected then
-				index += 1
-			end
+		for _, image in pairs(images) do
+			image.Visible = true
 		end
 	end
 
 	local controller = {}
+	function controller:IsPointerOverImage()
+		local pointerPositions = getPointerPositions()
+		for _, image in pairs(images) do
+			for _, pointerPosition in ipairs(pointerPositions) do
+				if containsPoint(image, pointerPosition) then
+					return true
+				end
+			end
+		end
+		return false
+	end
+
 	function controller:SetEnabled(value)
 		enabled = value == true
 		refresh()
 	end
 
 	function controller:SetSelection(value)
-		selection = {}
-		if type(value) == "table" then
-			for name, selected in pairs(value) do
-				if selected == true and assets[name] then
-					selection[name] = true
-				end
-			end
-		end
-		local index = 0
-		local selectedNames = {}
-		for name in pairs(selection) do
-			table.insert(selectedNames, name)
-		end
-		table.sort(selectedNames)
-		for _, name in ipairs(selectedNames) do
-			index += 1
-			local image = ensureImage(name, index)
-			image.Visible = enabled and library.Toggled == true
-		end
+		ensureImage(DEFAULT_IMAGE_NAME, 1)
 		refresh()
-	end
-
-	function controller:AddAsset(rawId)
-		local id = tostring(rawId or ""):match("^%s*(%d+)%s*$")
-		if not id then
-			return false, "Enter a numeric Roblox image asset ID."
-		end
-		local name = "Custom " .. id
-		if not assets[name] then
-			assets[name] = id
-		end
-		local nextSelection = table.clone(selection)
-		nextSelection[name] = true
-		controller:SetSelection(nextSelection)
-		return true, name
-	end
-
-	function controller:GetAssetNames()
-		local names = {}
-		for name in pairs(assets) do
-			table.insert(names, name)
-		end
-		table.sort(names)
-		return names
-	end
-
-	function controller:SetOnChanged(callback)
-		onChanged = callback
+		return true
 	end
 
 	function controller:GetConfigState()
-		local state = {
-			assets = table.clone(assets),
-			selection = table.clone(selection),
-			positions = {},
+		return {
+			assets = table.clone(DEFAULT_ASSETS),
 		}
-		for name, image in pairs(images) do
-			state.positions[name] = {
-				xScale = image.Position.X.Scale,
-				xOffset = image.Position.X.Offset,
-				yScale = image.Position.Y.Scale,
-				yOffset = image.Position.Y.Offset,
-				rotation = image.Rotation,
-			}
-		end
-		return state
 	end
 
 	function controller:SetConfigState(state)
 		if type(state) ~= "table" then
 			return false
 		end
-		if type(state.assets) == "table" then
-			for name, id in pairs(state.assets) do
-				if type(name) == "string" and name:match("^Custom %d+$")
-					and type(id) == "string" and id:match("^%d+$") then
-					assets[name] = id
-				end
-			end
-		end
-		controller:SetSelection(state.selection)
-		if type(state.positions) == "table" then
-			for name, position in pairs(state.positions) do
-				local image = images[name]
-				if image and type(position) == "table" then
-					image.Position = UDim2.new(
-						math.clamp(tonumber(position.xScale) or 0, 0, 1),
-						math.clamp(tonumber(position.xOffset) or 0, -10000, 10000),
-						math.clamp(tonumber(position.yScale) or 0, 0, 1),
-						math.clamp(tonumber(position.yOffset) or 0, -10000, 10000)
-					)
-					image.Rotation = math.clamp(tonumber(position.rotation) or 5, -45, 45)
-				end
-			end
-		end
-		refresh()
+		controller:SetSelection({ [DEFAULT_IMAGE_NAME] = true })
+		updateWindowAnchoredImages()
 		return true
 	end
 
 	library:GiveSignal(library.OnToggledChanged.Event:Connect(refresh))
+	library:GiveSignal(library.WindowDraggingChanged.Event:Connect(function(isDragging)
+		windowDragging = isDragging == true
+		refresh()
+	end))
 	library:GiveSignal(library.ScreenGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refresh))
-	library:GiveSignal(UserInputService.InputChanged:Connect(function(input)
-		if activeDrag and input.UserInputType == Enum.UserInputType.MouseMovement and input.Delta.Magnitude > 0 then
-			dragMoved = true
-		end
+	library:GiveSignal(RunService.RenderStepped:Connect(function()
+		updateWindowAnchoredImages()
 	end))
-	library:GiveSignal(UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 and activeDrag then
-			activeDrag = nil
-			if dragMoved and onChanged then
-				onChanged()
-			end
-			dragMoved = false
-		end
-	end))
+	controller:SetSelection({ [DEFAULT_IMAGE_NAME] = true })
 	return controller
 end
 	end,
@@ -8673,6 +9119,13 @@ local themes = {
 		AccentColor = Color3.fromHex("4f7dff"),
 		BackgroundColor = Color3.fromHex("10121b"),
 		OutlineColor = Color3.fromHex("272c3f"),
+	},
+	Luma = {
+		FontColor = Color3.fromHex("d7dff2"),
+		MainColor = Color3.fromHex("171a2a"),
+		AccentColor = Color3.fromHex("7896d4"),
+		BackgroundColor = Color3.fromHex("0c0e18"),
+		OutlineColor = Color3.fromHex("303b5e"),
 	},
 	Iceberg = {
 		FontColor = Color3.fromHex("e0f4ff"),
@@ -8917,6 +9370,11 @@ local themes = {
 local createAmbience = require("@src/ui/ambience")
 local customThemes = {}
 local themeTransparencies = {
+	Luma = {
+		MainColor = 0.14,
+		BackgroundColor = 0.24,
+		OutlineColor = 0.34,
+	},
 	Transparent = {
 		MainColor = 0.16,
 		BackgroundColor = 0.24,
@@ -9031,7 +9489,7 @@ local function applySavedTheme(library, snapshot, defaultTheme)
 
 	local options = snapshot and snapshot.options
 	if type(options) ~= "table" then
-		local fallbackTheme = "Cherry Blossom"
+		local fallbackTheme = "Luma"
 		for key, color in pairs(themes[fallbackTheme]) do
 			library[key] = color
 		end
@@ -9049,7 +9507,7 @@ local function applySavedTheme(library, snapshot, defaultTheme)
 			library[key] = color
 		end
 	else
-		themeName = "Cherry Blossom"
+		themeName = "Luma"
 		for key, color in pairs(themes[themeName]) do
 			library[key] = color
 		end
@@ -9124,7 +9582,7 @@ local function setupSettings(tab, context)
 	local themeNames = {}
 	local defaultTheme = context.StartupTheme
 	if not defaultTheme then
-		defaultTheme = "Cherry Blossom"
+		defaultTheme = "Luma"
 	end
 	for name in pairs(themes) do
 		table.insert(themeNames, name)
@@ -9274,11 +9732,10 @@ local function setupSettings(tab, context)
 			context.Library:SetUIFont(fontName)
 		end,
 	})
-	context.Library:SetWidgetCornersBoxy(true)
 	local windowCornerRadius = 8
 	local windowCornerRadiusSlider = interface:AddSlider("Wiggins_OuterWindowRadius", {
-		Text = "Outer window radius",
-		Tooltip = "Set the outside corner radius of the window while Curved UI corners is enabled.",
+		Text = "UI corner radius",
+		Tooltip = "Set the radius of the window and UI widget corners. Set to zero for square corners.",
 		Default = windowCornerRadius,
 		Min = 0,
 		Max = 16,
@@ -9294,18 +9751,17 @@ local function setupSettings(tab, context)
 		end,
 	})
 	interface:AddToggle("Wiggins_RoundOuterWindow", {
-		Text = "Curved UI corners",
-		Tooltip = "Enable rounded corners for the outer window and widgets. Turn off for square corners.",
+		Text = "Round window and widgets",
+		Tooltip = "Applies the selected corner radius to the window and UI widgets.",
 		Default = false,
 		Callback = function(enabled)
 			windowCornerRadiusSlider:SetDisabled(not enabled)
 			context.Library:SetWindowCornerRadius(enabled and windowCornerRadius or nil)
-			context.Library:SetWidgetCornersBoxy(not enabled)
 		end,
 	})
 	interface:AddToggle("YSL_ShowSideImage", {
 		Text = "Cute anime girl",
-		Tooltip = "Show the selected image(s). Drag each image to position it; its position is saved with your config.",
+		Tooltip = "Show or hide the anime girl image above the window.",
 		Default = true,
 		Callback = function(enabled)
 			if context.SideImage then
@@ -9313,41 +9769,6 @@ local function setupSettings(tab, context)
 			end
 		end,
 	})
-	local imageNames = context.SideImage and context.SideImage:GetAssetNames()
-		or { "Anime Girl 1", "Anime Girl 2" }
-	local sideImageDropdown = interface:AddDropdown("YSL_SideImages", {
-		Text = "Side images",
-		Tooltip = "Select one or more images to show. Drag images on screen to move them; positions are included in saved configs.",
-		Values = imageNames,
-		Multi = true,
-		Default = { "Anime Girl 1" },
-		Callback = function(selection)
-			if context.SideImage then
-				context.SideImage:SetSelection(selection)
-			end
-		end,
-	})
-	interface:AddInput("YSL_CustomSideImageId", {
-		Text = "Custom image asset ID",
-		Tooltip = "Enter a numeric Roblox image or decal asset ID to add it to the side-image dropdown.",
-		Default = "",
-		Placeholder = "Roblox asset ID",
-		Finished = true,
-	})
-	interface:AddButton("Add custom image", function()
-		if not context.SideImage then
-			context.SetStatus("Side images are unavailable")
-			return
-		end
-		local ok, result = context.SideImage:AddAsset(aztup_options.YSL_CustomSideImageId.Value)
-		if not ok then
-			context.SetStatus(result)
-			return
-		end
-		sideImageDropdown:SetValues(context.SideImage:GetAssetNames())
-		sideImageDropdown:SetValue(context.SideImage:GetConfigState().selection)
-		context.SetStatus("added " .. result)
-	end)
 
 	local configuration = tab:AddRightGroupbox("Configuration")
 	configuration:AddLabel("Configuration profiles")
@@ -9413,6 +9834,35 @@ local function setupSettings(tab, context)
 		end
 		context.SetStatus(ok and ("deleted " .. tostring(name)) or "config not found")
 	end)
+
+	local arrayListGroup = tab:AddLeftGroupbox("Array List")
+	local arrayList = context.ArrayList
+	arrayListGroup:AddToggle("YSL_ArrayListEnabled", {
+		Text = "Show enabled features",
+		Tooltip = "Show currently enabled toggles in the movable ArrayList.",
+		Default = true,
+		ArrayList = false,
+		Callback = function(enabled)
+			if arrayList then
+				arrayList:SetVisible(enabled)
+			end
+		end,
+	})
+	arrayListGroup:AddToggle("YSL_ArrayListBackground", {
+		Text = "Word backgrounds",
+		Tooltip = "Show a compact background behind each enabled feature.",
+		Default = true,
+		ArrayList = false,
+		Callback = function(enabled)
+			if arrayList then
+				arrayList:SetBackgroundEnabled(enabled)
+			end
+		end,
+	})
+	if arrayList then
+		arrayList:SetVisible(aztup_toggles.YSL_ArrayListEnabled.Value)
+		arrayList:SetBackgroundEnabled(aztup_toggles.YSL_ArrayListBackground.Value)
+	end
 
 	local other = tab:AddRightGroupbox("Other")
 	local originalFpsCap
@@ -9761,18 +10211,12 @@ local function setupSettings(tab, context)
 			context.Library:SetInfoLoggerVisibility(enabled)
 		end,
 	})
-	local showKeybinds = other:AddToggle("KeybindShower", {
+	other:AddToggle("KeybindShower", {
 		Text = "Show Keybinds",
 		Default = false,
 		Callback = function(enabled)
 			context.Library:SetKeybindVisibility(enabled)
 		end,
-	})
-	showKeybinds:AddKeyPicker("YSL_ShowKeybindsKey", {
-		Text = "Show Keybinds",
-		Default = "H",
-		Mode = "Toggle",
-		SyncToggleState = true,
 	})
 	other:AddSlider("YSL_HudTransparency", {
 		Text = "HUD background transparency",
@@ -9964,6 +10408,7 @@ function ConfigStore.new(library)
 		legacyAutoloadName = nil,
 		defaultTheme = nil,
 		selectedGames = {},
+		sideImages = nil,
 		library = library,
 	}, ConfigStore)
 	if type(readfile) == "function" then
@@ -9973,6 +10418,7 @@ function ConfigStore.new(library)
 			if decodeSuccess and type(data) == "table" then
 				store.defaultTheme = type(data.defaultTheme) == "string" and data.defaultTheme or nil
 				store.selectedGames = type(data.selectedGames) == "table" and data.selectedGames or {}
+				store.sideImages = type(data.sideImages) == "table" and data.sideImages or nil
 				store.autoloadByGame = type(data.autoloadByGame) == "table" and data.autoloadByGame or {}
 				store.legacyAutoloadName = type(data.autoloadName) == "string" and data.autoloadName or nil
 				if type(data.legacyAutoloadName) == "string" then
@@ -10023,6 +10469,7 @@ function ConfigStore:Persist()
 		autoloadByGame = self.autoloadByGame,
 		defaultTheme = self.defaultTheme,
 		selectedGames = self.selectedGames,
+		sideImages = self.sideImages,
 		legacyConfigs = self.legacyConfigs,
 		legacyAutoloadName = self.legacyAutoloadName,
 	})
@@ -10036,6 +10483,28 @@ function ConfigStore:Persist()
 	local written, writeError = pcall(writefile, CONFIG_PATH, contents)
 	if not written then
 		return false, tostring(writeError)
+	end
+	return true
+end
+
+function ConfigStore:GetSideImages()
+	return self.sideImages
+end
+
+function ConfigStore:SaveSideImages(state)
+	local safeState, normalized = copy(state)
+	if type(safeState) ~= "table" then
+		return false, "Could not save mascot settings: invalid state."
+	end
+	if normalized then
+		warn("[YSL Method] Mascot settings contained unsupported values; affected values were omitted.")
+	end
+	local previousState = self.sideImages
+	self.sideImages = safeState
+	local success, err = self:Persist()
+	if not success then
+		self.sideImages = previousState
+		return false, err
 	end
 	return true
 end
@@ -10171,10 +10640,6 @@ function ConfigStore:Load(name)
 	if snapshot.sideImages and self.library and self.library.SideImageController then
 		apply("side images", function()
 			self.library.SideImageController:SetConfigState(snapshot.sideImages)
-			local dropdown = aztup_options.YSL_SideImages
-			if dropdown then
-				dropdown:SetValues(self.library.SideImageController:GetAssetNames())
-			end
 		end)
 	end
 	for id, item in pairs(snapshot.options or {}) do
@@ -10334,6 +10799,7 @@ local Library = require("@src/utility/librarys/ui")
 local ConfigStore = require("@src/config")
 local settingsModule = require("@src/ui/tabs/Settings")
 local createAmbience = require("@src/ui/ambience")
+local createArrayList = require("@src/ui/arraylist")
 local createEspPreview = require("@src/ui/esp_preview")
 local createSideImage = require("@src/ui/side_image")
 local configStore = ConfigStore.new(Library)
@@ -10345,7 +10811,7 @@ end
 local startupTheme = settingsModule.ApplySavedTheme(
 	Library,
 	configStore:GetAutoLoadSnapshot(),
-	configStore:GetDefaultTheme() or "Mint"
+	configStore:GetDefaultTheme() or "Luma"
 )
 local Window = Library:CreateWindow({
 	Title = "ysl luma",
@@ -10360,6 +10826,7 @@ local function setStatus(message)
 	Library:Notify(message, 3)
 end
 
+local arrayList
 local mainTab = Window:AddTab("Main")
 local controls = mainTab:AddLeftGroupbox("Showcase Controls")
 controls:AddLabel("Interactive UI examples only. These controls do not run game features.", true)
@@ -10377,8 +10844,21 @@ controls:AddInput("Demo_TextInput", {
 	end,
 })
 controls:AddSlider("Demo_Slider", {
-	Text = "Slider",
+	Text = "Feature chance",
 	Default = 50,
+	Min = 0,
+	Max = 100,
+	Rounding = 0,
+	Suffix = "%",
+	Callback = function()
+		if arrayList then
+			arrayList:Refresh()
+		end
+	end,
+})
+controls:AddMinMaxSlider("Demo_RangeSlider", {
+	Text = "Range slider",
+	Default = { Min = 25, Max = 75 },
 	Min = 0,
 	Max = 100,
 	Rounding = 0,
@@ -10395,25 +10875,46 @@ controls:AddLabel("Accent color"):AddColorPicker("Demo_AccentColor", {
 })
 
 local placeholders = mainTab:AddRightGroupbox("Placeholder Features")
+local arrayListExamples = {
+	"lol",
+	"test123 lol",
+	"hi hi hi hi",
+	"tiny",
+	"arraylist",
+	"wow look at this",
+	"this one is kinda long",
+	"super duper long demo label",
+	"look at how cool the arraylist is",
+	"the longest arraylist entry ever",
+}
+for index, name in ipairs(arrayListExamples) do
+	placeholders:AddToggle("Demo_ArrayListToggle" .. index, {
+		Text = name,
+		Default = true,
+	})
+end
 local exampleToggle = placeholders:AddToggle("Demo_ExampleToggle", {
-	Text = "Example toggle",
-	Default = false,
-	ArrayList = false,
+	Text = "look at how cool this is",
+	Default = true,
+	Callback = function()
+		if arrayList then
+			arrayList:Refresh()
+		end
+	end,
 })
-exampleToggle:AddKeyPicker("Demo_ExampleKeybind", {
-	Text = "Example keybind",
-	Default = "G",
+
+local keyboundExample = aztup_toggles.Demo_ArrayListToggle10
+keyboundExample:AddKeyPicker("Demo_ArrayListKeybind", {
+	Text = "ArrayList demo hotkey",
+	Default = "F13",
 	Mode = "Toggle",
 	SyncToggleState = true,
-})
-placeholders:AddToggle("Demo_SecondToggle", {
-	Text = "Second example toggle",
-	Default = true,
-	ArrayList = false,
 })
 placeholders:AddButton("Placeholder action", function()
 	setStatus("Placeholder action clicked")
 end)
+arrayList = createArrayList(Library)
+arrayList:SetVisible(true)
 
 local settingsTab = Window:AddTab("Settings")
 local ambience = createAmbience(Library)
@@ -10433,28 +10934,23 @@ settingsModule.Setup(settingsTab, {
 	StartupTheme = startupTheme,
 	Ambience = ambience,
 	SideImage = sideImage,
+	ArrayList = arrayList,
 	SetStatus = setStatus,
 })
 local sideImageToggle = aztup_toggles.YSL_ShowSideImage
 if sideImageToggle then
 	sideImage:SetEnabled(sideImageToggle.Value)
 end
-sideImage:SetOnChanged(function()
-	local configList = aztup_options.Wiggins_ConfigList
-	local configName = configList and configList.Value or configStore:GetAutoLoadName()
-	if not configName then
-		setStatus("Create or select a config to save mascot positions")
-		return
+local savedSideImages = configStore:GetSideImages()
+if savedSideImages then
+	Library.ConfigLoading = true
+	local restored, restoreError = pcall(function()
+		sideImage:SetConfigState(savedSideImages)
+	end)
+	if not restored then
+		warn("[YSL Method] Could not restore automatically saved mascot settings: " .. tostring(restoreError))
 	end
-	local saved, saveError = configStore:Save(configName)
-	if not saved then
-		warn("[YSL Method] Could not save mascot positions: " .. tostring(saveError))
-		setStatus(saveError)
-	end
-end)
-local sideImageDropdown = aztup_options.YSL_SideImages
-if sideImageDropdown then
-	sideImage:SetSelection(sideImageDropdown.Value)
+	Library.ConfigLoading = false
 end
 if configStore:GetAutoLoadName() then
 	local callSuccess, loadSuccess, loadError = pcall(function()
@@ -10466,6 +10962,12 @@ if configStore:GetAutoLoadName() then
 		warn("[YSL Method] Autoload config failed: " .. tostring(loadError))
 	end
 end
+
+for index = 1, #arrayListExamples do
+	local toggle = assert(aztup_toggles["Demo_ArrayListToggle" .. index])
+	toggle:SetValue(true)
+end
+exampleToggle:SetValue(true)
 
 Library:UpdateColorsUsingRegistry()
 loaded_signal:fire()
