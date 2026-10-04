@@ -7660,8 +7660,7 @@ valueControls:AddLabel("Accent color"):AddColorPicker("Demo_AccentColor", {
 })
 
 local layoutTab = Window:AddTab("Layout and Extras")
-local tabboxGroup = layoutTab:AddLeftGroupbox("Nested Tabs")
-local nestedTabs = tabboxGroup:AddLeftTabbox("Tabbox example")
+local nestedTabs = layoutTab:AddLeftTabbox("Tabbox example")
 local firstNestedTab = nestedTabs:AddTab("First")
 firstNestedTab:AddLabel("Tabboxes provide a second level of content switching.", true)
 firstNestedTab:AddToggle("Demo_NestedToggle", {
