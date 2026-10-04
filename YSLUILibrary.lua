@@ -1896,7 +1896,7 @@ function Library:CreateWindow(...)
 		ImageColor3 = Color3.new(1, 1, 1);
 		ImageTransparency = 0;
 		ScaleType = Enum.ScaleType.Fit;
-		Position = UDim2.fromOffset(8, 2);
+		Position = UDim2.fromOffset(8, 0);
 		Size = UDim2.fromOffset(28, 28);
 		ZIndex = 5;
 		Parent = Inner;
