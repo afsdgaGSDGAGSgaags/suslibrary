@@ -8276,11 +8276,11 @@ return function(library)
 		local previewOnRight = not preview
 			or preview.AbsolutePosition.X >= window.AbsolutePosition.X + window.AbsoluteSize.X / 2
 		local preferredX = previewOnRight
-			and windowPosition.X - imageSize.X + 34
-			or windowPosition.X + window.AbsoluteSize.X - 34
+			and windowPosition.X - imageSize.X + 100
+			or windowPosition.X + window.AbsoluteSize.X - 100
 		local x = math.clamp(preferredX, 8, math.max(8, viewportSize.X - imageSize.X - 8))
 		local y = math.clamp(
-			windowPosition.Y + 76,
+			windowPosition.Y + window.AbsoluteSize.Y - imageSize.Y,
 			8,
 			math.max(8, viewportSize.Y - imageSize.Y - 8)
 		)
