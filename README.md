@@ -1,6 +1,6 @@
 # YSL UI Library
 
-This repository contains a standalone, bundled UI-library showcase. It includes the UI library and its required components in one Luau file.
+This repository contains a standalone, bundled YSL Method UI showcase with Controls, Layout and Extras, and Settings tabs. It includes the UI library and its required components in one Luau file.
 
 ## Files
 
