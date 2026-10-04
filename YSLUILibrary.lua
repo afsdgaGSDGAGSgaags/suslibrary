@@ -1887,21 +1887,61 @@ function Library:CreateWindow(...)
 	}, false);
 	WindowAccentLabel.RichText = false;
 	Library.WindowAccentLabel = WindowAccentLabel;
+	local logoTestScreenGui = Instance.new('ScreenGui');
+	logoTestScreenGui.Name = 'YSLLogoRenderTest';
+	logoTestScreenGui.DisplayOrder = ScreenGui.DisplayOrder + 1000;
+	logoTestScreenGui.IgnoreGuiInset = ScreenGui.IgnoreGuiInset;
+	logoTestScreenGui.ResetOnSpawn = false;
+	logoTestScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+	logoTestScreenGui.Parent = ScreenGui.Parent;
+	Library:OnUnload(function()
+		logoTestScreenGui:Destroy()
+	end)
 	local WindowTitleLogo = Library:Create('ImageLabel', {
 		Name = 'WindowTitleLogo';
 		Active = false;
 		AnchorPoint = Vector2.new(0.5, 0.5);
-		BackgroundTransparency = 1;
+		BackgroundColor3 = Color3.fromRGB(32, 38, 52);
+		BackgroundTransparency = 0;
 		BorderSizePixel = 0;
-		Image = 'rbxassetid://129868188377055';
+		Image = 'rbxthumb://type=Asset&id=129868188377055&w=420&h=420';
 		ImageColor3 = Color3.new(1, 1, 1);
 		ImageTransparency = 0;
 		ScaleType = Enum.ScaleType.Fit;
 		Position = UDim2.fromScale(0.5, 0.5);
-		Size = UDim2.fromOffset(100, 100);
-		ZIndex = 1000;
-		Parent = ScreenGui;
+		Size = UDim2.fromOffset(180, 180);
+		ZIndex = 2;
+		Parent = logoTestScreenGui;
 	})
+	local logoTestStatus = Instance.new('TextLabel');
+	logoTestStatus.Name = 'LogoRenderStatus';
+	logoTestStatus.AnchorPoint = Vector2.new(0.5, 0);
+	logoTestStatus.BackgroundColor3 = Color3.fromRGB(32, 38, 52);
+	logoTestStatus.BorderSizePixel = 0;
+	logoTestStatus.Font = Enum.Font.GothamBold;
+	logoTestStatus.Position = UDim2.new(0.5, 0, 0.5, 96);
+	logoTestStatus.Size = UDim2.fromOffset(240, 28);
+	logoTestStatus.Text = 'LOGO TEST: LOADING ASSET';
+	logoTestStatus.TextColor3 = Color3.new(1, 1, 1);
+	logoTestStatus.TextSize = 13;
+	logoTestStatus.ZIndex = 2;
+	logoTestStatus.Parent = logoTestScreenGui;
+	task.spawn(function()
+		local success, err = pcall(function()
+			game:GetService('ContentProvider'):PreloadAsync({ WindowTitleLogo })
+		end)
+		if not logoTestScreenGui.Parent then
+			return
+		end
+		if success and WindowTitleLogo.IsLoaded then
+			logoTestStatus.Text = 'LOGO TEST: IMAGE LOADED'
+			logoTestStatus.TextColor3 = Color3.fromRGB(120, 255, 150)
+		else
+			logoTestStatus.Text = 'LOGO TEST: IMAGE FAILED TO LOAD'
+			logoTestStatus.TextColor3 = Color3.fromRGB(255, 120, 120)
+			warn('[YSL Method] Title logo did not load: ' .. tostring(err or 'asset is not loaded'))
+		end
+	end)
 	Library.WindowTitleFontName = "GothamBold"
 	Library.UIFontName = "Gotham"
 	function Library:SetUIFont(fontName)
